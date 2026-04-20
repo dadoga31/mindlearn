@@ -1355,12 +1355,12 @@
 
       <div id="login-form">
         <div class="form-group">
-          <label class="form-label">Correo electrónico</label>
-          <input type="email" class="form-input" id="login-email" placeholder="nombre@ejemplo.com" value="admin@mindlearn.es">
+          <label class="form-label">Usuario o correo electrónico</label>
+          <input type="text" class="form-input" id="login-email" placeholder="usuario o nombre@ejemplo.com">
         </div>
         <div class="form-group">
           <label class="form-label">Contraseña</label>
-          <input type="password" class="form-input" id="login-password" placeholder="••••••••" value="admin123">
+          <input type="password" class="form-input" id="login-password" placeholder="••••••••">
         </div>
         <button class="btn btn-primary" onclick="doLogin()" style="width:100%;padding:14px;font-size:15px;justify-content:center;">Entrar a MindLearn</button>
       </div>
@@ -1388,14 +1388,6 @@
         <button class="btn btn-primary" onclick="doRegister()" style="width:100%;padding:14px;font-size:15px;justify-content:center;">Crear cuenta</button>
       </div>
 
-      <div class="quick-access">
-        <p>Acceso rápido de demostración</p>
-        <div class="quick-btns">
-          <button class="quick-btn" onclick="quickLogin('admin')">👤 Administrador</button>
-          <button class="quick-btn" onclick="quickLogin('professor')">📚 Profesor</button>
-          <button class="quick-btn" onclick="quickLogin('student')">🎓 Alumno</button>
-        </div>
-      </div>
     </div>
   </div>
 </div>
@@ -1729,7 +1721,7 @@ var STATE = {
 ───────────────────────────────────────────── */
 var DB = {
   users: [
-    { id:1, name:'Carlos Administrador', email:'admin@mindlearn.es', password:'admin123', role:'admin', active:true, created:'2024-01-10' },
+    { id:1, name:'Carlos Administrador', username:'admin', email:'admin@mindlearn.es', password:'admin123', role:'admin', active:true, created:'2024-01-10' },
     { id:2, name:'Dra. María García', email:'prof@mindlearn.es', password:'prof123', role:'professor', active:true, created:'2024-01-12' },
     { id:3, name:'Ana López', email:'ana@mindlearn.es', password:'alumno123', role:'student', active:true, created:'2024-02-01', enrollments:[1,2] },
     { id:4, name:'Juan Martínez', email:'juan@mindlearn.es', password:'alumno123', role:'student', active:true, created:'2024-02-05', enrollments:[1] },
@@ -1883,18 +1875,10 @@ function switchAuthTab(tab) {
   document.getElementById('register-form').style.display = tab==='register' ? 'block' : 'none';
 }
 
-function quickLogin(role) {
-  var user;
-  if(role==='admin') user = DB.users.find(function(u){ return u.role==='admin'; });
-  else if(role==='professor') user = DB.users.find(function(u){ return u.role==='professor'; });
-  else user = DB.users.find(function(u){ return u.role==='student'; });
-  if(user) loginAs(user);
-}
-
 function doLogin() {
-  var email = document.getElementById('login-email').value.trim();
+  var input = document.getElementById('login-email').value.trim();
   var pass = document.getElementById('login-password').value;
-  var user = DB.users.find(function(u){ return u.email===email && u.password===pass && u.active; });
+  var user = DB.users.find(function(u){ return (u.email===input || u.username===input) && u.password===pass && u.active; });
   if(!user) { toast('Credenciales incorrectas','error'); return; }
   loginAs(user);
 }
