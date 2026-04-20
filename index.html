@@ -1744,6 +1744,7 @@ var DB = {
       description:'Comprende cómo funciona el cerebro, la memoria y los procesos cognitivos básicos que rigen nuestro pensamiento y conducta.',
       category:'Psicología Básica',
       banner:'banner-1',
+      photo:'https://images.pexels.com/photos/5723875/pexels-photo-5723875.jpeg?auto=compress&cs=tinysrgb&w=900&h=400&dpr=2',
       emoji:'🧠',
       professor:'Dra. María García',
       duration:'6h 30min',
@@ -1809,6 +1810,7 @@ var DB = {
       description:'Analiza las emociones, los sesgos cognitivos y cómo tomamos decisiones. Aprende a comprender y gestionar tu propia conducta.',
       category:'Comportamiento',
       banner:'banner-2',
+      photo:'https://images.pexels.com/photos/4558860/pexels-photo-4558860.jpeg?auto=compress&cs=tinysrgb&w=900&h=400&dpr=2',
       emoji:'💡',
       professor:'Dra. María García',
       duration:'5h 45min',
@@ -2257,7 +2259,7 @@ function renderCourseDetail(courseId) {
   // Sidebar card
   html += '<div style="min-width:0;">' +
     '<div class="card" style="position:sticky;top:84px;overflow:hidden;padding:0;">' +
-    '<img src="https://picsum.photos/seed/course'+c.id+'/600/220" alt="'+c.title+'" style="width:100%;height:180px;object-fit:cover;display:block;">' +
+    '<img src="'+c.photo+'" alt="'+c.title+'" style="width:100%;height:180px;object-fit:cover;display:block;">' +
     '<div style="padding:20px;">';
 
   if(isEnrolled) {
