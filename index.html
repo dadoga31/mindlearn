@@ -1954,7 +1954,17 @@ function seedDemoData() {
         });
         return Promise.all(ops).then(function() { return fauth2.signOut(); });
       })
-      .catch(function() { return fauth2.signOut(); })
+      .catch(function(err) {
+        var msg = err && err.code === 'auth/email-already-in-use'
+          ? null
+          : (err && err.message) || 'Error desconocido';
+        if(msg && msg.toLowerCase().includes('permission')) {
+          showAuthLoading(false);
+          showLoginError('Firestore rechazó la escritura. Configura las reglas de seguridad en la consola de Firebase y vuelve a intentarlo.');
+          return;
+        }
+        return fauth2.signOut();
+      })
       .then(function() { createNext(i+1); });
   }
   createNext(0);
@@ -3567,7 +3577,13 @@ fauth.onAuthStateChanged(function(firebaseUser) {
       var profileDoc = results[0];
       var usersSnap  = results[1];
       var progressSnap = results[2];
-      if(!profileDoc.exists) { fauth.signOut(); showAuthLoading(false); return; }
+      if(!profileDoc.exists) {
+        fauth.signOut(); showAuthLoading(false);
+        showLoginError('Perfil no encontrado en la base de datos. Comprueba las reglas de Firestore y vuelve a cargar los datos de demo.');
+        var s = document.getElementById('seed-section');
+        if(s) s.style.display = 'block';
+        return;
+      }
       DB.users = [];
       usersSnap.forEach(function(doc) { DB.users.push(Object.assign({ id:doc.id }, doc.data())); });
       DB.progress = {};
