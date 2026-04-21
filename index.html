@@ -1208,6 +1208,7 @@
   .toast.info { border-left: 3px solid var(--accent); }
 
   @keyframes slideIn { from { transform: translateX(20px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+  @keyframes spin { to { transform: rotate(360deg); } }
 
   /* ─── MISC ─── */
   .divider { height: 1px; background: var(--border); margin: 24px 0; }
@@ -1344,6 +1345,10 @@
 <!-- ═══════════════════════════════════════════════════════════ -->
 <!-- AUTH SCREEN -->
 <!-- ═══════════════════════════════════════════════════════════ -->
+<div id="auth-loading" style="display:flex;position:fixed;inset:0;background:var(--bg1);z-index:9999;align-items:center;justify-content:center;flex-direction:column;gap:16px;">
+  <div style="width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--accent2);border-radius:50%;animation:spin 0.8s linear infinite;"></div>
+  <span style="color:var(--text2);font-size:14px;">Cargando...</span>
+</div>
 <div id="auth-screen">
   <button class="theme-toggle" id="auth-theme-btn" onclick="toggleTheme()" title="Cambiar tema" style="position:absolute;top:24px;right:24px;z-index:10;"></button>
   <span class="theme-icon" id="auth-theme-icon" style="position:absolute;top:28px;right:78px;z-index:10;">🌙</span>
@@ -1397,6 +1402,10 @@
         <button class="btn btn-primary" onclick="doRegister()" style="width:100%;padding:14px;font-size:15px;justify-content:center;">Crear cuenta</button>
       </div>
 
+      <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);text-align:center;">
+        <p style="font-size:12px;color:var(--text3);margin-bottom:10px;">¿Primera vez? Carga los usuarios y datos de demo</p>
+        <button class="btn btn-ghost" onclick="seedDemoData()" style="font-size:12px;padding:8px 16px;">Cargar datos de demo</button>
+      </div>
     </div>
   </div>
 </div>
@@ -1710,6 +1719,9 @@
 <!-- ═══════════════════════════════════════════════════════════ -->
 <!-- SCRIPT -->
 <!-- ═══════════════════════════════════════════════════════════ -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 <script>
 /* ─────────────────────────────────────────────
    STATE
@@ -1888,6 +1900,61 @@ var DB = {
 };
 
 /* ─────────────────────────────────────────────
+   FIREBASE
+───────────────────────────────────────────── */
+var _fbConfig = {
+  apiKey: "AIzaSyCHGMwxEqdVwJopy6mc8SgZzoRrqDV587g",
+  authDomain: "mindlearn-cea39.firebaseapp.com",
+  projectId: "mindlearn-cea39",
+  storageBucket: "mindlearn-cea39.firebasestorage.app",
+  messagingSenderId: "790625172842",
+  appId: "1:790625172842:web:0183cba68dd6c757f97913"
+};
+firebase.initializeApp(_fbConfig);
+var fauth = firebase.auth();
+var fstore = firebase.firestore();
+// App secundaria para crear cuentas sin cerrar la sesión del admin
+var _secondaryApp = firebase.initializeApp(_fbConfig, 'secondary');
+var fauth2 = _secondaryApp.auth();
+
+function showAuthLoading(on) {
+  document.getElementById('auth-loading').style.display = on ? 'flex' : 'none';
+}
+
+function seedDemoData() {
+  var demoUsers = [
+    { email:'admin@mindlearn.es', pass:'admin123', profile:{ name:'Carlos Administrador', username:'admin', role:'admin', active:true, created:'2024-01-10', enrollments:[] } },
+    { email:'prof@mindlearn.es',  pass:'prof123',  profile:{ name:'Dra. María García', role:'professor', active:true, created:'2024-01-12', enrollments:[] } },
+    { email:'ana@mindlearn.es',   pass:'alumno123', profile:{ name:'Ana López',      role:'student', active:true, created:'2024-02-01', enrollments:[1,2] } },
+    { email:'juan@mindlearn.es',  pass:'alumno123', profile:{ name:'Juan Martínez',  role:'student', active:true, created:'2024-02-05', enrollments:[1] } },
+    { email:'sofia@mindlearn.es', pass:'alumno123', profile:{ name:'Sofia Ruiz',     role:'student', active:true, created:'2024-02-10', enrollments:[2] } }
+  ];
+  var created = 0;
+  var total = demoUsers.length;
+  showAuthLoading(true);
+  function createNext(i) {
+    if(i >= total) {
+      showAuthLoading(false);
+      toast('Demo listo. Usa admin@mindlearn.es / admin123','success');
+      return;
+    }
+    var du = demoUsers[i];
+    fauth2.createUserWithEmailAndPassword(du.email, du.pass)
+      .then(function(cred) {
+        var uid = cred.user.uid;
+        var ops = [fstore.collection('users').doc(uid).set(Object.assign({ email:du.email }, du.profile))];
+        du.profile.enrollments.forEach(function(cid) {
+          ops.push(fstore.collection('progress').doc(uid+'_'+cid).set({ userId:uid, courseId:cid, completedLessons:[], quizResults:{} }));
+        });
+        return Promise.all(ops).then(function() { return fauth2.signOut(); });
+      })
+      .catch(function() { return fauth2.signOut(); })
+      .then(function() { createNext(i+1); });
+  }
+  createNext(0);
+}
+
+/* ─────────────────────────────────────────────
    AUTH
 ───────────────────────────────────────────── */
 function switchAuthTab(tab) {
@@ -1901,9 +1968,13 @@ function switchAuthTab(tab) {
 function doLogin() {
   var input = document.getElementById('login-email').value.trim();
   var pass = document.getElementById('login-password').value;
-  var user = DB.users.find(function(u){ return (u.email===input || u.username===input) && u.password===pass && u.active; });
-  if(!user) { toast('Credenciales incorrectas','error'); return; }
-  loginAs(user);
+  if(!input || !pass) { toast('Completa todos los campos','error'); return; }
+  showAuthLoading(true);
+  fauth.signInWithEmailAndPassword(input, pass)
+    .catch(function() {
+      showAuthLoading(false);
+      toast('Credenciales incorrectas','error');
+    });
 }
 
 function doRegister() {
@@ -1912,11 +1983,19 @@ function doRegister() {
   var pass = document.getElementById('reg-password').value;
   var role = document.getElementById('reg-role').value;
   if(!name||!email||!pass) { toast('Completa todos los campos','error'); return; }
-  if(DB.users.find(function(u){ return u.email===email; })) { toast('Email ya registrado','error'); return; }
-  var id = DB.users.reduce(function(m,u){ return Math.max(m,u.id); },0)+1;
-  var newUser = { id:id, name:name, email:email, password:pass, role:role, active:true, created:new Date().toISOString().slice(0,10), enrollments:[] };
-  DB.users.push(newUser);
-  loginAs(newUser);
+  showAuthLoading(true);
+  fauth.createUserWithEmailAndPassword(email, pass)
+    .then(function(cred) {
+      var profile = { name:name, email:email, role:role, active:true, created:new Date().toISOString().slice(0,10), enrollments:[] };
+      return fstore.collection('users').doc(cred.user.uid).set(profile);
+    })
+    .catch(function(err) {
+      showAuthLoading(false);
+      var msg = err.code==='auth/email-already-in-use' ? 'Email ya registrado'
+        : err.code==='auth/weak-password' ? 'Contraseña muy corta (mínimo 6 caracteres)'
+        : err.message;
+      toast(msg, 'error');
+    });
 }
 
 function loginAs(user) {
@@ -1929,10 +2008,14 @@ function loginAs(user) {
 }
 
 function doLogout() {
-  STATE.currentUser = null;
-  document.getElementById('app').classList.remove('visible');
-  document.getElementById('auth-screen').style.display = 'flex';
-  toast('Sesión cerrada correctamente','info');
+  fauth.signOut().then(function() {
+    STATE.currentUser = null;
+    DB.users = [];
+    DB.progress = {};
+    document.getElementById('app').classList.remove('visible');
+    document.getElementById('auth-screen').style.display = 'flex';
+    toast('Sesión cerrada correctamente','info');
+  });
 }
 
 /* ─────────────────────────────────────────────
@@ -2292,13 +2375,18 @@ function toggleModule(id) {
 function enrollCourse(courseId) {
   var u = STATE.currentUser;
   if(!u.enrollments) u.enrollments = [];
-  if(!u.enrollments.includes(courseId)) {
-    u.enrollments.push(courseId);
-    if(!DB.progress[u.id]) DB.progress[u.id] = {};
-    if(!DB.progress[u.id][courseId]) DB.progress[u.id][courseId] = { completedLessons:[], quizResults:{} };
+  if(u.enrollments.includes(courseId)) return;
+  u.enrollments.push(courseId);
+  if(!DB.progress[u.id]) DB.progress[u.id] = {};
+  if(!DB.progress[u.id][courseId]) DB.progress[u.id][courseId] = { completedLessons:[], quizResults:{} };
+  var ops = [
+    fstore.collection('users').doc(u.id).update({ enrollments: u.enrollments }),
+    fstore.collection('progress').doc(u.id+'_'+courseId).set({ userId:u.id, courseId:courseId, completedLessons:[], quizResults:{} })
+  ];
+  Promise.all(ops).then(function() {
     toast('¡Matriculación completada! 🎉','success');
     renderCourseDetail(courseId);
-  }
+  }).catch(function(err){ toast('Error: '+err.message,'error'); });
 }
 
 /* ─────────────────────────────────────────────
@@ -2399,6 +2487,11 @@ function completeLesson(courseId, lessonId) {
   if(!DB.progress[u.id][courseId].completedLessons.includes(lessonId)) {
     DB.progress[u.id][courseId].completedLessons.push(lessonId);
   }
+  fstore.collection('progress').doc(u.id+'_'+courseId).set({
+    userId: u.id, courseId: courseId,
+    completedLessons: DB.progress[u.id][courseId].completedLessons,
+    quizResults: DB.progress[u.id][courseId].quizResults || {}
+  }, { merge: true });
   toast('Lección completada ✓','success');
   renderLesson({ courseId:courseId, lessonId:lessonId });
 }
@@ -2477,6 +2570,11 @@ function submitQuiz() {
   if(!DB.progress[u.id]) DB.progress[u.id] = {};
   if(!DB.progress[u.id][cId]) DB.progress[u.id][cId] = { completedLessons:[], quizResults:{} };
   DB.progress[u.id][cId].quizResults[quiz.id] = result;
+  fstore.collection('progress').doc(u.id+'_'+cId).set({
+    userId: u.id, courseId: cId,
+    completedLessons: DB.progress[u.id][cId].completedLessons || [],
+    quizResults: DB.progress[u.id][cId].quizResults
+  }, { merge: true });
 
   showQuizResults(quiz, result);
 }
@@ -2648,9 +2746,9 @@ function renderUsersTable(users) {
     var initials = u.name.split(' ').map(function(w){ return w[0]; }).join('').slice(0,2).toUpperCase();
     var enrolled = (u.enrollments||[]).length;
     html += '<tr>' +
-      '<td><div style="display:flex;align-items:center;gap:10px;cursor:pointer;" onclick="openUserDetail('+u.id+')">' +
+      '<td><div style="display:flex;align-items:center;gap:10px;cursor:pointer;" onclick="openUserDetail(\''+u.id+'\')">' +
       '<div style="width:32px;height:32px;border-radius:50%;background:var(--bg4);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;">'+initials+'</div>' +
-      '<div><div style="font-weight:500;">'+u.name+'</div><div style="font-size:11px;color:var(--text3);">ID #'+u.id+'</div></div>' +
+      '<div><div style="font-weight:500;">'+u.name+'</div><div style="font-size:11px;color:var(--text3);">'+u.email+'</div></div>' +
       '</div></td>' +
       '<td style="color:var(--text2);">'+u.email+'</td>' +
       '<td><span class="badge '+badgeCls+'">'+roleLabel+'</span></td>' +
@@ -2658,9 +2756,9 @@ function renderUsersTable(users) {
       '<td style="color:var(--text2);font-size:13px;">'+(u.created||'—')+'</td>' +
       '<td><span class="tag '+(u.active?'tag-green':'tag-rose')+'">'+(u.active?'Activo':'Inactivo')+'</span></td>' +
       '<td><div class="action-btns">' +
-      '<button class="btn btn-ghost btn-sm" onclick="openUserDetail('+u.id+')">Ver</button>' +
-      '<button class="btn btn-ghost btn-sm" onclick="editUser('+u.id+')">Editar</button>' +
-      (u.id!==STATE.currentUser.id ? '<button class="btn btn-danger btn-sm" onclick="toggleUser('+u.id+')">'+(u.active?'Desactivar':'Activar')+'</button>' : '') +
+      '<button class="btn btn-ghost btn-sm" onclick="openUserDetail(\''+u.id+'\')">Ver</button>' +
+      '<button class="btn btn-ghost btn-sm" onclick="editUser(\''+u.id+'\')">Editar</button>' +
+      (u.id!==STATE.currentUser.id ? '<button class="btn btn-danger btn-sm" onclick="toggleUser(\''+u.id+'\')">'+(u.active?'Desactivar':'Activar')+'</button>' : '') +
       '</div></td>' +
       '</tr>';
   });
@@ -2683,7 +2781,13 @@ function editUser(id) {
 
 function toggleUser(id) {
   var u = DB.users.find(function(x){ return x.id===id; });
-  if(u) { u.active = !u.active; renderUsers(); toast((u.active?'Usuario activado':'Usuario desactivado'),'info'); }
+  if(!u) return;
+  var newActive = !u.active;
+  fstore.collection('users').doc(id).update({ active: newActive }).then(function() {
+    u.active = newActive;
+    renderUsers();
+    toast((u.active?'Usuario activado':'Usuario desactivado'),'info');
+  });
 }
 
 function openUserModal() {
@@ -2705,7 +2809,6 @@ function saveUser() {
   var pass = document.getElementById('modal-user-pass').value;
   if(!name||!email) { toast('Completa nombre y email','error'); return; }
 
-  // Collect enrollments
   var newEnrollments = [];
   if(role==='student') {
     DB.courses.forEach(function(c){
@@ -2716,38 +2819,67 @@ function saveUser() {
 
   if(STATE.editUserId) {
     var u = DB.users.find(function(x){ return x.id===STATE.editUserId; });
-    if(u) {
-      var oldEnrollments = u.enrollments || [];
-      u.name=name; u.email=email; u.role=role;
-      if(pass) u.password=pass;
-      if(role==='student') {
-        u.enrollments = newEnrollments;
-        // init progress for newly enrolled
-        newEnrollments.forEach(function(cid){
-          if(!oldEnrollments.includes(cid)) {
-            if(!DB.progress[u.id]) DB.progress[u.id] = {};
-            if(!DB.progress[u.id][cid]) DB.progress[u.id][cid] = { completedLessons:[], quizResults:{} };
-          }
-        });
-      }
-    }
-    toast('Usuario actualizado correctamente','success');
+    if(!u) return;
+    var oldEnrollments = u.enrollments || [];
+    var updateData = { name:name, email:email, role:role };
+    if(role==='student') updateData.enrollments = newEnrollments;
+    fstore.collection('users').doc(STATE.editUserId).update(updateData)
+      .then(function() {
+        u.name=name; u.email=email; u.role=role;
+        if(role==='student') {
+          u.enrollments = newEnrollments;
+          var ops = [];
+          newEnrollments.forEach(function(cid){
+            if(!oldEnrollments.includes(cid)) {
+              if(!DB.progress[u.id]) DB.progress[u.id] = {};
+              if(!DB.progress[u.id][cid]) {
+                DB.progress[u.id][cid] = { completedLessons:[], quizResults:{} };
+                ops.push(fstore.collection('progress').doc(u.id+'_'+cid).set({ userId:u.id, courseId:cid, completedLessons:[], quizResults:{} }));
+              }
+            }
+          });
+          return Promise.all(ops);
+        }
+      })
+      .then(function() {
+        toast('Usuario actualizado correctamente','success');
+        closeModal('modal-user');
+        renderUsers();
+      })
+      .catch(function(err) { toast('Error: '+err.message,'error'); });
   } else {
     if(!pass) { toast('La contraseña es obligatoria','error'); return; }
     if(DB.users.find(function(u){ return u.email===email; })) { toast('Email ya registrado','error'); return; }
-    var newId = DB.users.reduce(function(m,u){ return Math.max(m,u.id); },0)+1;
-    var newUser = { id:newId, name:name, email:email, password:pass, role:role, active:true, created:new Date().toISOString().slice(0,10), enrollments: role==='student' ? newEnrollments : [] };
-    DB.users.push(newUser);
-    if(role==='student') {
-      newEnrollments.forEach(function(cid){
-        if(!DB.progress[newId]) DB.progress[newId] = {};
-        DB.progress[newId][cid] = { completedLessons:[], quizResults:{} };
+    fauth2.createUserWithEmailAndPassword(email, pass)
+      .then(function(cred) {
+        var uid = cred.user.uid;
+        var profile = { name:name, email:email, role:role, active:true, created:new Date().toISOString().slice(0,10), enrollments: role==='student' ? newEnrollments : [] };
+        var ops = [fstore.collection('users').doc(uid).set(profile)];
+        if(role==='student') {
+          newEnrollments.forEach(function(cid){
+            ops.push(fstore.collection('progress').doc(uid+'_'+cid).set({ userId:uid, courseId:cid, completedLessons:[], quizResults:{} }));
+          });
+        }
+        return Promise.all(ops).then(function() {
+          DB.users.push(Object.assign({ id:uid }, profile));
+          if(role==='student') {
+            DB.progress[uid] = {};
+            newEnrollments.forEach(function(cid){ DB.progress[uid][cid] = { completedLessons:[], quizResults:{} }; });
+          }
+          return fauth2.signOut();
+        });
+      })
+      .then(function() {
+        toast('Usuario creado correctamente ✓','success');
+        closeModal('modal-user');
+        renderUsers();
+      })
+      .catch(function(err) {
+        fauth2.signOut();
+        var msg = err.code==='auth/email-already-in-use' ? 'Email ya registrado' : err.message;
+        toast('Error: '+msg,'error');
       });
-    }
-    toast('Usuario creado correctamente ✓','success');
   }
-  closeModal('modal-user');
-  renderUsers();
 }
 
 /* ─────────────────────────────────────────────
@@ -3156,7 +3288,7 @@ function renderRolesTab() {
       html += '<div style="display:flex;flex-wrap:wrap;gap:6px;">';
       usersWithRole.forEach(function(u){
         var initials = u.name.split(' ').map(function(w){ return w[0]; }).join('').slice(0,2).toUpperCase();
-        html += '<div title="'+u.name+'" style="width:28px;height:28px;border-radius:50%;background:var(--bg4);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;cursor:pointer;" onclick="openUserDetail('+u.id+')">'+initials+'</div>';
+        html += '<div title="'+u.name+'" style="width:28px;height:28px;border-radius:50%;background:var(--bg4);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;cursor:pointer;" onclick="openUserDetail(\''+u.id+'\')">'+initials+'</div>';
       });
       html += '</div>';
     }
@@ -3174,7 +3306,7 @@ function renderRolesTab() {
       '<div style="width:30px;height:30px;border-radius:50%;background:var(--bg4);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;">'+u.name.split(' ').map(function(w){ return w[0]; }).join('').slice(0,2)+'</div>' +
       '<span style="font-weight:500;">'+u.name+'</span></div></td>' +
       '<td><span class="badge '+badgeCls+'">'+label+'</span></td>' +
-      '<td><button class="btn btn-ghost btn-sm" '+(u.id===STATE.currentUser.id?'disabled style="opacity:0.4;"':'')+' onclick="openChangeRole('+u.id+')">Cambiar rol</button></td></tr>';
+      '<td><button class="btn btn-ghost btn-sm" '+(u.id===STATE.currentUser.id?'disabled style="opacity:0.4;"':'')+' onclick="openChangeRole(\''+u.id+'\')">Cambiar rol</button></td></tr>';
   });
   html += '</tbody></table></div></div>';
 
@@ -3205,7 +3337,7 @@ function renderEnrollmentsTab() {
       '<div style="display:flex;gap:10px;flex-wrap:wrap;">';
     DB.courses.forEach(function(c){
       var enrolled = enrolledIds.includes(c.id);
-      html += '<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--bg3);border:1.5px solid '+(enrolled?'var(--accent)':'var(--border)')+';border-radius:var(--radius-sm);cursor:pointer;transition:var(--transition);" onclick="toggleEnrollment('+u.id+','+c.id+')" id="enroll-card-'+u.id+'-'+c.id+'">' +
+      html += '<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--bg3);border:1.5px solid '+(enrolled?'var(--accent)':'var(--border)')+';border-radius:var(--radius-sm);cursor:pointer;transition:var(--transition);" onclick="toggleEnrollment(\''+u.id+'\','+c.id+')" id="enroll-card-'+u.id+'-'+c.id+'">' +
         '<span>'+c.emoji+'</span>' +
         '<span style="font-size:13px;font-weight:'+(enrolled?'500':'400')+';color:'+(enrolled?'var(--accent2)':'var(--text2')+');">'+c.title+'</span>' +
         '<span style="font-size:12px;color:'+(enrolled?'var(--green)':'var(--text3')+';">'+(enrolled?'✓ Matriculado':'+ Matricular')+'</span>' +
@@ -3223,16 +3355,20 @@ function toggleEnrollment(userId, courseId) {
   if(!u) return;
   if(!u.enrollments) u.enrollments = [];
   var idx = u.enrollments.indexOf(courseId);
+  var ops = [];
   if(idx>-1) {
     u.enrollments.splice(idx,1);
+    ops.push(fstore.collection('users').doc(userId).update({ enrollments: u.enrollments }));
     toast('Matriculación eliminada','info');
   } else {
     u.enrollments.push(courseId);
     if(!DB.progress[u.id]) DB.progress[u.id] = {};
     if(!DB.progress[u.id][courseId]) DB.progress[u.id][courseId] = { completedLessons:[], quizResults:{} };
+    ops.push(fstore.collection('users').doc(userId).update({ enrollments: u.enrollments }));
+    ops.push(fstore.collection('progress').doc(userId+'_'+courseId).set({ userId:userId, courseId:courseId, completedLessons:[], quizResults:{} }));
     toast('Alumno matriculado correctamente ✓','success');
   }
-  renderEnrollmentsTab();
+  Promise.all(ops).then(function(){ renderEnrollmentsTab(); });
 }
 
 function openUserDetail(userId) {
@@ -3258,7 +3394,7 @@ function openUserDetail(userId) {
     '<div style="display:flex;align-items:center;gap:8px;"><span style="font-size:13px;color:var(--text2);">'+u.email+'</span><span class="badge '+badgeCls+'">'+roleLabel+'</span>' +
     (u.active?'<span class="tag tag-green">Activo</span>':'<span class="tag tag-rose">Inactivo</span>')+'</div>' +
     '</div>' +
-    (u.id!==STATE.currentUser.id?'<button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-user-detail\');openChangeRole('+u.id+')">Cambiar rol</button>':'') +
+    (u.id!==STATE.currentUser.id?'<button class="btn btn-ghost btn-sm" onclick="closeModal(\'modal-user-detail\');openChangeRole(\''+u.id+'\')">Cambiar rol</button>':'') +
     '</div>';
 
   html += '<div class="stats-grid" style="margin-bottom:20px;">';
@@ -3291,10 +3427,10 @@ function openUserDetail(userId) {
   }
 
   html += '<div style="display:flex;gap:10px;margin-top:20px;padding-top:16px;border-top:1px solid var(--border);">' +
-    '<button class="btn btn-primary" style="flex:1;" onclick="closeModal(\'modal-user-detail\');editUser('+u.id+')">Editar usuario</button>';
+    '<button class="btn btn-primary" style="flex:1;" onclick="closeModal(\'modal-user-detail\');editUser(\''+u.id+'\')">Editar usuario</button>';
   if(u.id!==STATE.currentUser.id) {
-    html += '<button class="btn '+(u.active?'btn-danger':'btn-success')+'" onclick="toggleUser('+u.id+');closeModal(\'modal-user-detail\');renderUsers();">'+(u.active?'Desactivar':'Activar')+'</button>';
-    html += '<button class="btn btn-danger" onclick="deleteUser('+u.id+')">Eliminar</button>';
+    html += '<button class="btn '+(u.active?'btn-danger':'btn-success')+'" onclick="toggleUser(\''+u.id+'\');closeModal(\'modal-user-detail\');renderUsers();">'+(u.active?'Desactivar':'Activar')+'</button>';
+    html += '<button class="btn btn-danger" onclick="deleteUser(\''+u.id+'\')">Eliminar</button>';
   }
   html += '</div>';
 
@@ -3340,6 +3476,7 @@ function applyRoleChange() {
     var oldRole = u.role;
     u.role = pendingRoleChange;
     pendingRoleChange = null;
+    fstore.collection('users').doc(STATE.editUserId).update({ role: pendingRoleChange });
     closeModal('modal-change-role');
     var roleLabel = u.role==='admin'?'Administrador':u.role==='professor'?'Profesor':'Alumno';
     toast('Rol actualizado a '+roleLabel+' ✓','success');
@@ -3355,10 +3492,16 @@ function deleteUser(userId) {
   var u = DB.users.find(function(x){ return x.id===userId; });
   if(!u) return;
   if(!confirm('¿Eliminar a '+u.name+'? Esta acción no se puede deshacer.')) return;
-  DB.users = DB.users.filter(function(x){ return x.id!==userId; });
-  closeModal('modal-user-detail');
-  toast('Usuario eliminado','info');
-  renderUsers();
+  var progressKeys = Object.keys(DB.progress[userId] || {});
+  var ops = [fstore.collection('users').doc(userId).delete()];
+  progressKeys.forEach(function(cid){ ops.push(fstore.collection('progress').doc(userId+'_'+cid).delete()); });
+  Promise.all(ops).then(function() {
+    DB.users = DB.users.filter(function(x){ return x.id!==userId; });
+    delete DB.progress[userId];
+    closeModal('modal-user-detail');
+    toast('Usuario eliminado','info');
+    renderUsers();
+  }).catch(function(err){ toast('Error: '+err.message,'error'); });
 }
 
 function toggleEnrollSection() {
@@ -3392,6 +3535,40 @@ function filterUsers(query) {
   });
   renderUsersTable(filtered);
 }
+
+/* ─────────────────────────────────────────────
+   INIT
+───────────────────────────────────────────── */
+fauth.onAuthStateChanged(function(firebaseUser) {
+  if(firebaseUser) {
+    Promise.all([
+      fstore.collection('users').doc(firebaseUser.uid).get(),
+      fstore.collection('users').get(),
+      fstore.collection('progress').get()
+    ]).then(function(results) {
+      var profileDoc = results[0];
+      var usersSnap  = results[1];
+      var progressSnap = results[2];
+      if(!profileDoc.exists) { fauth.signOut(); showAuthLoading(false); return; }
+      DB.users = [];
+      usersSnap.forEach(function(doc) { DB.users.push(Object.assign({ id:doc.id }, doc.data())); });
+      DB.progress = {};
+      progressSnap.forEach(function(doc) {
+        var d = doc.data();
+        if(!d.userId || d.courseId===undefined) return;
+        if(!DB.progress[d.userId]) DB.progress[d.userId] = {};
+        DB.progress[d.userId][d.courseId] = { completedLessons: d.completedLessons||[], quizResults: d.quizResults||{} };
+      });
+      var profile = Object.assign({ id:firebaseUser.uid }, profileDoc.data());
+      if(!profile.active) { fauth.signOut(); showAuthLoading(false); toast('Cuenta desactivada','error'); return; }
+      loginAs(profile);
+      showAuthLoading(false);
+    }).catch(function(err) { showAuthLoading(false); toast('Error al cargar datos: '+err.message,'error'); });
+  } else {
+    showAuthLoading(false);
+  }
+});
 </script>
+
 </body>
 </html>
