@@ -1377,6 +1377,7 @@
           <input type="password" class="form-input" id="login-password" placeholder="••••••••">
         </div>
         <button class="btn btn-primary" onclick="doLogin()" style="width:100%;padding:14px;font-size:15px;justify-content:center;">Entrar a MindLearn</button>
+        <div id="login-error" style="display:none;margin-top:12px;padding:10px 14px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:8px;font-size:13px;color:#ef4444;text-align:center;"></div>
       </div>
 
       <div id="register-form" style="display:none;">
@@ -1402,7 +1403,7 @@
         <button class="btn btn-primary" onclick="doRegister()" style="width:100%;padding:14px;font-size:15px;justify-content:center;">Crear cuenta</button>
       </div>
 
-      <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);text-align:center;">
+      <div id="seed-section" style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);text-align:center;">
         <p style="font-size:12px;color:var(--text3);margin-bottom:10px;">¿Primera vez? Carga los usuarios y datos de demo</p>
         <button class="btn btn-ghost" onclick="seedDemoData()" style="font-size:12px;padding:8px 16px;">Cargar datos de demo</button>
       </div>
@@ -1935,7 +1936,12 @@ function seedDemoData() {
   function createNext(i) {
     if(i >= total) {
       showAuthLoading(false);
-      toast('Demo listo. Usa admin@mindlearn.es / admin123','success');
+      var s = document.getElementById('seed-section');
+      if(s) s.style.display = 'none';
+      showLoginError('');
+      document.getElementById('login-email').value = 'admin@mindlearn.es';
+      document.getElementById('login-password').value = 'admin123';
+      toast('Demo listo. Pulsa "Entrar a MindLearn"','success');
       return;
     }
     var du = demoUsers[i];
@@ -1965,15 +1971,27 @@ function switchAuthTab(tab) {
   document.getElementById('register-form').style.display = tab==='register' ? 'block' : 'none';
 }
 
+function showLoginError(msg) {
+  var el = document.getElementById('login-error');
+  if(!el) return;
+  el.textContent = msg;
+  el.style.display = msg ? 'block' : 'none';
+}
+
 function doLogin() {
   var input = document.getElementById('login-email').value.trim();
   var pass = document.getElementById('login-password').value;
-  if(!input || !pass) { toast('Completa todos los campos','error'); return; }
+  showLoginError('');
+  if(!input || !pass) { showLoginError('Completa todos los campos'); return; }
   showAuthLoading(true);
   fauth.signInWithEmailAndPassword(input, pass)
-    .catch(function() {
+    .catch(function(err) {
       showAuthLoading(false);
-      toast('Credenciales incorrectas','error');
+      var msg = err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential'
+        ? 'Email o contraseña incorrectos'
+        : err.code === 'auth/too-many-requests' ? 'Demasiados intentos. Espera unos minutos'
+        : 'Error: ' + err.message;
+      showLoginError(msg);
     });
 }
 
@@ -3563,7 +3581,11 @@ fauth.onAuthStateChanged(function(firebaseUser) {
       if(!profile.active) { fauth.signOut(); showAuthLoading(false); toast('Cuenta desactivada','error'); return; }
       loginAs(profile);
       showAuthLoading(false);
-    }).catch(function(err) { showAuthLoading(false); toast('Error al cargar datos: '+err.message,'error'); });
+    }).catch(function(err) {
+      showAuthLoading(false);
+      fauth.signOut();
+      showLoginError('Error al cargar datos: ' + err.message);
+    });
   } else {
     showAuthLoading(false);
   }
