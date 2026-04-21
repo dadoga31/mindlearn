@@ -1945,27 +1945,32 @@ function seedDemoData() {
       return;
     }
     var du = demoUsers[i];
-    fauth2.createUserWithEmailAndPassword(du.email, du.pass)
-      .then(function(cred) {
-        var uid = cred.user.uid;
-        var ops = [fstore.collection('users').doc(uid).set(Object.assign({ email:du.email }, du.profile))];
-        du.profile.enrollments.forEach(function(cid) {
-          ops.push(fstore.collection('progress').doc(uid+'_'+cid).set({ userId:uid, courseId:cid, completedLessons:[], quizResults:{} }));
-        });
-        return Promise.all(ops).then(function() { return fauth2.signOut(); });
-      })
-      .catch(function(err) {
-        var msg = err && err.code === 'auth/email-already-in-use'
-          ? null
-          : (err && err.message) || 'Error desconocido';
-        if(msg && msg.toLowerCase().includes('permission')) {
+    function writeProfileAndContinue(uid) {
+      var ops = [fstore.collection('users').doc(uid).set(Object.assign({ email:du.email }, du.profile))];
+      du.profile.enrollments.forEach(function(cid) {
+        ops.push(fstore.collection('progress').doc(uid+'_'+cid).set({ userId:uid, courseId:cid, completedLessons:[], quizResults:{} }));
+      });
+      return Promise.all(ops)
+        .then(function() { return fauth2.signOut(); })
+        .catch(function(err) {
           showAuthLoading(false);
-          showLoginError('Firestore rechazó la escritura. Configura las reglas de seguridad en la consola de Firebase y vuelve a intentarlo.');
-          return;
+          showLoginError('Error al escribir en Firestore: ' + err.message + '. Comprueba las reglas de seguridad.');
+          fauth2.signOut();
+          throw err;
+        });
+    }
+    fauth2.createUserWithEmailAndPassword(du.email, du.pass)
+      .then(function(cred) { return writeProfileAndContinue(cred.user.uid); })
+      .catch(function(err) {
+        if(err && err.code === 'auth/email-already-in-use') {
+          return fauth2.signInWithEmailAndPassword(du.email, du.pass)
+            .then(function(cred) { return writeProfileAndContinue(cred.user.uid); });
         }
+        if(err && err.message && err.message.includes('Firestore')) throw err;
         return fauth2.signOut();
       })
-      .then(function() { createNext(i+1); });
+      .then(function() { createNext(i+1); })
+      .catch(function() {});
   }
   createNext(0);
 }
