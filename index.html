@@ -1917,6 +1917,7 @@ var fstore = firebase.firestore();
 // App secundaria para crear cuentas sin cerrar la sesión del admin
 var _secondaryApp = firebase.initializeApp(_fbConfig, 'secondary');
 var fauth2 = _secondaryApp.auth();
+var fstore2 = _secondaryApp.firestore(); // Firestore autenticado con fauth2
 
 function showAuthLoading(on) {
   document.getElementById('auth-loading').style.display = on ? 'flex' : 'none';
@@ -1946,9 +1947,9 @@ function seedDemoData() {
     }
     var du = demoUsers[i];
     function writeProfileAndContinue(uid) {
-      var ops = [fstore.collection('users').doc(uid).set(Object.assign({ email:du.email }, du.profile))];
+      var ops = [fstore2.collection('users').doc(uid).set(Object.assign({ email:du.email }, du.profile))];
       du.profile.enrollments.forEach(function(cid) {
-        ops.push(fstore.collection('progress').doc(uid+'_'+cid).set({ userId:uid, courseId:cid, completedLessons:[], quizResults:{} }));
+        ops.push(fstore2.collection('progress').doc(uid+'_'+cid).set({ userId:uid, courseId:cid, completedLessons:[], quizResults:{} }));
       });
       return Promise.all(ops)
         .then(function() { return fauth2.signOut(); })
