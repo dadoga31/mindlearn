@@ -1711,6 +1711,19 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="modal-confirm">
+  <div class="modal-card" style="max-width:380px;">
+    <div class="modal-header"><h3 class="modal-title">Confirmar acción</h3></div>
+    <div class="modal-body">
+      <p id="confirm-msg" style="font-size:14px;line-height:1.6;"></p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-danger" id="confirm-ok" style="flex:1;">Sí, eliminar</button>
+      <button class="btn btn-ghost" onclick="closeModal('modal-confirm')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast-container" id="toast-container"></div>
 
 <!-- ═══════════════════════════════════════════════════════════ -->
@@ -2737,6 +2750,7 @@ function renderUsersTable(users) {
       '<button class="btn btn-ghost btn-sm" onclick="openUserDetail(\''+u.id+'\')">Ver</button>' +
       '<button class="btn btn-ghost btn-sm" onclick="editUser(\''+u.id+'\')">Editar</button>' +
       (u.id!==STATE.currentUser.id ? '<button class="btn btn-danger btn-sm" onclick="toggleUser(\''+u.id+'\')">'+(u.active?'Desactivar':'Activar')+'</button>' : '') +
+      (u.id!==STATE.currentUser.id ? '<button class="btn btn-danger btn-sm" onclick="deleteUser(\''+u.id+'\')">Eliminar</button>' : '') +
       '</div></td>' +
       '</tr>';
   });
@@ -3469,17 +3483,25 @@ function deleteUser(userId) {
   if(userId===STATE.currentUser.id) { toast('No puedes eliminarte a ti mismo','error'); return; }
   var u = DB.users.find(function(x){ return x.id===userId; });
   if(!u) return;
-  if(!confirm('¿Eliminar a '+u.name+'? Esta acción no se puede deshacer.')) return;
-  var progressKeys = Object.keys(DB.progress[userId] || {});
-  var ops = [fstore.collection('users').doc(userId).delete()];
-  progressKeys.forEach(function(cid){ ops.push(fstore.collection('progress').doc(userId+'_'+cid).delete()); });
-  Promise.all(ops).then(function() {
-    DB.users = DB.users.filter(function(x){ return x.id!==userId; });
-    delete DB.progress[userId];
-    closeModal('modal-user-detail');
-    toast('Usuario eliminado','info');
-    renderUsers();
-  }).catch(function(err){ toast('Error: '+err.message,'error'); });
+  showConfirm('¿Eliminar a <strong>'+u.name+'</strong>?<br><span style="font-size:12px;color:var(--text3);">Esta acción no se puede deshacer.</span>', function() {
+    var progressKeys = Object.keys(DB.progress[userId] || {});
+    var ops = [fstore.collection('users').doc(userId).delete()];
+    progressKeys.forEach(function(cid){ ops.push(fstore.collection('progress').doc(userId+'_'+cid).delete()); });
+    Promise.all(ops).then(function() {
+      DB.users = DB.users.filter(function(x){ return x.id!==userId; });
+      delete DB.progress[userId];
+      closeModal('modal-user-detail');
+      closeModal('modal-confirm');
+      toast('Usuario eliminado correctamente','info');
+      renderUsers();
+    }).catch(function(err){ toast('Error al eliminar: '+err.message,'error'); });
+  });
+}
+
+function showConfirm(msg, onConfirm) {
+  document.getElementById('confirm-msg').innerHTML = msg;
+  document.getElementById('confirm-ok').onclick = onConfirm;
+  document.getElementById('modal-confirm').classList.add('open');
 }
 
 function toggleEnrollSection() {
