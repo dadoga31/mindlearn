@@ -1403,9 +1403,19 @@
         <button class="btn btn-primary" onclick="doRegister()" style="width:100%;padding:14px;font-size:15px;justify-content:center;">Crear cuenta</button>
       </div>
 
-      <div id="seed-section" style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);text-align:center;">
-        <p style="font-size:12px;color:var(--text3);margin-bottom:10px;">¿Primera vez? Carga los usuarios y datos de demo</p>
-        <button class="btn btn-ghost" onclick="seedDemoData()" style="font-size:12px;padding:8px 16px;">Cargar datos de demo</button>
+      <div id="first-setup" style="display:none;margin-top:20px;padding:20px;border:1px solid var(--border);border-radius:12px;background:var(--bg3);">
+        <div style="font-size:13px;font-weight:600;margin-bottom:4px;">⚙️ Configuración inicial</div>
+        <div style="font-size:12px;color:var(--text2);margin-bottom:14px;">No hay usuarios en el sistema. Crea la cuenta de administrador para empezar.</div>
+        <div class="form-group" style="margin-bottom:10px;">
+          <input type="text" class="form-input" id="setup-name" placeholder="Nombre del administrador" style="font-size:13px;">
+        </div>
+        <div class="form-group" style="margin-bottom:10px;">
+          <input type="email" class="form-input" id="setup-email" placeholder="Email del administrador" style="font-size:13px;">
+        </div>
+        <div class="form-group" style="margin-bottom:14px;">
+          <input type="password" class="form-input" id="setup-pass" placeholder="Contraseña (mín. 6 caracteres)" style="font-size:13px;">
+        </div>
+        <button class="btn btn-primary" onclick="createAdminAccount()" style="width:100%;justify-content:center;">Crear cuenta de administrador</button>
       </div>
     </div>
   </div>
@@ -1923,57 +1933,26 @@ function showAuthLoading(on) {
   document.getElementById('auth-loading').style.display = on ? 'flex' : 'none';
 }
 
-function seedDemoData() {
-  var demoUsers = [
-    { email:'admin@mindlearn.es', pass:'admin123', profile:{ name:'Carlos Administrador', username:'admin', role:'admin', active:true, created:'2024-01-10', enrollments:[] } },
-    { email:'prof@mindlearn.es',  pass:'prof123',  profile:{ name:'Dra. María García', role:'professor', active:true, created:'2024-01-12', enrollments:[] } },
-    { email:'ana@mindlearn.es',   pass:'alumno123', profile:{ name:'Ana López',      role:'student', active:true, created:'2024-02-01', enrollments:[1,2] } },
-    { email:'juan@mindlearn.es',  pass:'alumno123', profile:{ name:'Juan Martínez',  role:'student', active:true, created:'2024-02-05', enrollments:[1] } },
-    { email:'sofia@mindlearn.es', pass:'alumno123', profile:{ name:'Sofia Ruiz',     role:'student', active:true, created:'2024-02-10', enrollments:[2] } }
-  ];
-  var created = 0;
-  var total = demoUsers.length;
+function createAdminAccount() {
+  var name  = document.getElementById('setup-name').value.trim();
+  var email = document.getElementById('setup-email').value.trim();
+  var pass  = document.getElementById('setup-pass').value;
+  if(!name || !email || !pass) { showLoginError('Completa todos los campos'); return; }
+  if(pass.length < 6) { showLoginError('La contraseña debe tener al menos 6 caracteres'); return; }
+  showLoginError('');
   showAuthLoading(true);
-  function createNext(i) {
-    if(i >= total) {
+  fauth.createUserWithEmailAndPassword(email, pass)
+    .then(function(cred) {
+      var profile = { name:name, email:email, role:'admin', active:true, created:new Date().toISOString().slice(0,10), enrollments:[] };
+      return fstore.collection('users').doc(cred.user.uid).set(profile);
+    })
+    .catch(function(err) {
       showAuthLoading(false);
-      var s = document.getElementById('seed-section');
-      if(s) s.style.display = 'none';
-      showLoginError('');
-      document.getElementById('login-email').value = 'admin@mindlearn.es';
-      document.getElementById('login-password').value = 'admin123';
-      toast('Demo listo. Pulsa "Entrar a MindLearn"','success');
-      return;
-    }
-    var du = demoUsers[i];
-    function writeProfileAndContinue(uid) {
-      var ops = [fstore2.collection('users').doc(uid).set(Object.assign({ email:du.email }, du.profile))];
-      du.profile.enrollments.forEach(function(cid) {
-        ops.push(fstore2.collection('progress').doc(uid+'_'+cid).set({ userId:uid, courseId:cid, completedLessons:[], quizResults:{} }));
-      });
-      return Promise.all(ops)
-        .then(function() { return fauth2.signOut(); })
-        .catch(function(err) {
-          showAuthLoading(false);
-          showLoginError('Error al escribir en Firestore: ' + err.message + '. Comprueba las reglas de seguridad.');
-          fauth2.signOut();
-          throw err;
-        });
-    }
-    fauth2.createUserWithEmailAndPassword(du.email, du.pass)
-      .then(function(cred) { return writeProfileAndContinue(cred.user.uid); })
-      .catch(function(err) {
-        if(err && err.code === 'auth/email-already-in-use') {
-          return fauth2.signInWithEmailAndPassword(du.email, du.pass)
-            .then(function(cred) { return writeProfileAndContinue(cred.user.uid); });
-        }
-        if(err && err.message && err.message.includes('Firestore')) throw err;
-        return fauth2.signOut();
-      })
-      .then(function() { createNext(i+1); })
-      .catch(function() {});
-  }
-  createNext(0);
+      var msg = err.code === 'auth/email-already-in-use' ? 'Ese email ya está registrado'
+        : err.code === 'auth/weak-password' ? 'Contraseña demasiado corta'
+        : err.message;
+      showLoginError(msg);
+    });
 }
 
 /* ─────────────────────────────────────────────
@@ -3573,21 +3552,27 @@ function filterUsers(query) {
 /* ─────────────────────────────────────────────
    INIT
 ───────────────────────────────────────────── */
+function checkFirstSetup() {
+  fstore.collection('users').limit(1).get().then(function(snap) {
+    var setup = document.getElementById('first-setup');
+    if(setup) setup.style.display = snap.empty ? 'block' : 'none';
+  }).catch(function() {});
+}
+
 fauth.onAuthStateChanged(function(firebaseUser) {
   if(firebaseUser) {
+    document.getElementById('first-setup').style.display = 'none';
     Promise.all([
       fstore.collection('users').doc(firebaseUser.uid).get(),
       fstore.collection('users').get(),
       fstore.collection('progress').get()
     ]).then(function(results) {
-      var profileDoc = results[0];
-      var usersSnap  = results[1];
+      var profileDoc   = results[0];
+      var usersSnap    = results[1];
       var progressSnap = results[2];
       if(!profileDoc.exists) {
         fauth.signOut(); showAuthLoading(false);
-        showLoginError('Perfil no encontrado en la base de datos. Comprueba las reglas de Firestore y vuelve a cargar los datos de demo.');
-        var s = document.getElementById('seed-section');
-        if(s) s.style.display = 'block';
+        showLoginError('Perfil no encontrado en la base de datos.');
         return;
       }
       DB.users = [];
@@ -3610,6 +3595,7 @@ fauth.onAuthStateChanged(function(firebaseUser) {
     });
   } else {
     showAuthLoading(false);
+    checkFirstSetup();
   }
 });
 </script>
