@@ -1451,8 +1451,8 @@
           Analíticas
         </button>
         <button class="nav-item" id="nav-plugin" onclick="navigate('plugin')" style="display:none;">
-          <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
-          Funcionalidad Avanzada
+          <svg class="nav-icon" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+          Contacto WhatsApp
         </button>
       </div>
     </nav>
@@ -2041,6 +2041,8 @@ function setupUI() {
   } else if(u.role==='professor') {
     document.getElementById('nav-create-course').style.display = 'flex';
     document.getElementById('nav-plugin').style.display = 'flex';
+  } else if(u.role==='student') {
+    document.getElementById('nav-plugin').style.display = 'flex';
     document.getElementById('btn-new-course').style.display = 'inline-flex';
   }
 }
@@ -2061,7 +2063,7 @@ function navigate(page, params) {
     'dashboard':'Inicio', 'courses':'Cursos', 'course-detail':'Detalle del Curso',
     'lesson':'Lección', 'quiz':'Evaluación', 'quiz-results':'Resultados',
     'progress':'Mi Progreso', 'users':'Gestión de Usuarios', 'analytics':'Analíticas',
-    'create-course':'Crear Curso', 'plugin':'Funcionalidad Avanzada'
+    'create-course':'Crear Curso', 'plugin':'Contacto WhatsApp'
   };
   var subs = {
     'dashboard': STATE.currentUser && STATE.currentUser.role==='admin' ? 'Resumen de la plataforma' : 'Tu actividad de aprendizaje',
@@ -2070,7 +2072,7 @@ function navigate(page, params) {
     'users':'Administra los usuarios de MindLearn',
     'analytics':'Estadísticas de la plataforma',
     'create-course':'Diseña nuevo contenido educativo',
-    'plugin':'Demostración técnica avanzada'
+    'plugin':'Consulta dudas directamente con tu profesor'
   };
 
   document.getElementById('header-title').textContent = titles[page] || page;
@@ -3070,110 +3072,115 @@ function publishCourse() {
    PLUGIN / ADVANCED FEATURE
 ───────────────────────────────────────────── */
 function renderPlugin() {
-  var html = '<div style="max-width:800px;">' +
-    '<div class="section-title mb-2" style="margin-bottom:8px;">Funcionalidad Avanzada — REST API Endpoint</div>' +
-    '<p class="text-sm text-muted mb-4" style="margin-bottom:24px;">Demostración técnica DAM: endpoints REST personalizados para integración con sistemas externos</p>' +
+  var u = STATE.currentUser;
+  var isAdmin = u.role === 'admin';
+  var isProf  = u.role === 'professor';
+  var professors = DB.users.filter(function(x){ return x.role === 'professor' && x.active; });
 
-    '<div class="grid-2" style="margin-bottom:24px;"><div>' +
-    '<div class="card">' +
-    '<h3 style="font-size:13px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:14px;">Endpoints disponibles</h3>' +
-    '<div style="display:flex;flex-direction:column;gap:8px;">' +
-    endpointItem('GET', '/api/v1/courses', 'Listar todos los cursos') +
-    endpointItem('GET', '/api/v1/users', 'Listar usuarios') +
-    endpointItem('POST', '/api/v1/enroll', 'Matricular alumno en curso') +
-    endpointItem('GET', '/api/v1/progress/:userId', 'Obtener progreso de alumno') +
-    endpointItem('POST', '/api/v1/quiz/submit', 'Enviar respuestas de evaluación') +
-    '</div></div></div>' +
+  var html = '<div style="max-width:700px;">';
 
-    '<div>' +
-    '<div class="card">' +
-    '<h3 style="font-size:13px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:14px;">Consola API Live</h3>' +
-    '<select class="form-select" id="api-endpoint" style="margin-bottom:10px;" onchange="clearApiResult()">' +
-    '<option value="courses">GET /api/v1/courses</option>' +
-    '<option value="users">GET /api/v1/users</option>' +
-    '<option value="progress">GET /api/v1/progress/3</option>' +
-    '<option value="stats">GET /api/v1/stats</option>' +
-    '</select>' +
-    '<button class="btn btn-primary btn-sm" onclick="runApiCall()" style="width:100%;margin-bottom:10px;">▶ Ejecutar llamada</button>' +
-    '<div id="api-result" style="display:none;">' +
-    '<div style="font-size:11px;color:var(--text3);margin-bottom:6px;display:flex;justify-content:space-between;"><span>Response</span><span id="api-status"></span></div>' +
-    '<div class="plugin-demo" id="api-output"></div>' +
-    '</div>' +
-    '</div></div></div>' +
-
-    '<div class="card" style="margin-bottom:16px;">' +
-    '<h3 style="font-size:14px;font-weight:600;margin-bottom:14px;">Integración con Sistema Externo</h3>' +
-    '<div class="grid-2">' +
-    '<div>' +
-    '<div style="font-size:12px;color:var(--text3);margin-bottom:8px;">Webhook configurado</div>' +
-    '<div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:12px;font-family:monospace;font-size:12px;color:var(--teal);">POST https://lms.mindlearn.es/hooks/events</div>' +
+  /* ── Banner informativo ── */
+  html += '<div style="background:linear-gradient(135deg,rgba(37,211,102,0.12),rgba(37,211,102,0.04));border:1px solid rgba(37,211,102,0.25);border-radius:16px;padding:24px;display:flex;align-items:center;gap:18px;margin-bottom:28px;">' +
+    '<div style="width:56px;height:56px;background:rgba(37,211,102,0.15);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;">' +
+    '<svg width="28" height="28" fill="#25d366" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>' +
     '</div>' +
     '<div>' +
-    '<div style="font-size:12px;color:var(--text3);margin-bottom:8px;">Eventos soportados</div>' +
-    '<div style="display:flex;flex-direction:column;gap:4px;">' +
-    '<span class="tag tag-teal" style="align-self:start;">course.enrolled</span>' +
-    '<span class="tag tag-purple" style="align-self:start;">lesson.completed</span>' +
-    '<span class="tag tag-amber" style="align-self:start;">quiz.submitted</span>' +
-    '</div></div></div></div>' +
+    '<div style="font-size:16px;font-weight:700;margin-bottom:4px;">Contacto directo con tus profesores</div>' +
+    '<div style="font-size:13px;color:var(--text2);">Abre WhatsApp con un mensaje preescrito y resuelve tus dudas al instante.</div>' +
+    '</div></div>';
 
-    '<div class="card">' +
-    '<h3 style="font-size:14px;font-weight:600;margin-bottom:14px;">Código del Endpoint (Node.js + Express)</h3>' +
-    '<div class="plugin-demo">' +
-    '<span class="cmt">// mindlearn-api/routes/courses.js</span>\n' +
-    '<span class="kw">const</span> express = <span class="fn">require</span>(<span class="str">\'express\'</span>);\n' +
-    '<span class="kw">const</span> router = express.<span class="fn">Router</span>();\n' +
-    '<span class="kw">const</span> { authenticate } = <span class="fn">require</span>(<span class="str">\'../middleware/auth\'</span>);\n\n' +
-    '<span class="cmt">// GET /api/v1/courses — Lista todos los cursos</span>\n' +
-    'router.<span class="fn">get</span>(<span class="str">\'/\'</span>, authenticate, <span class="kw">async</span> (req, res) => {\n' +
-    '  <span class="kw">try</span> {\n' +
-    '    <span class="kw">const</span> courses = <span class="kw">await</span> Course.<span class="fn">findAll</span>({\n' +
-    '      include: [Module, Quiz],\n' +
-    '      where: { active: <span class="kw">true</span> }\n' +
-    '    });\n' +
-    '    res.<span class="fn">json</span>({ success: <span class="kw">true</span>, data: courses, total: courses.length });\n' +
-    '  } <span class="kw">catch</span> (err) {\n' +
-    '    res.<span class="fn">status</span>(500).<span class="fn">json</span>({ success: <span class="kw">false</span>, error: err.message });\n' +
-    '  }\n' +
-    '});\n\n' +
-    '<span class="cmt">// POST /api/v1/enroll — Matricular alumno</span>\n' +
-    'router.<span class="fn">post</span>(<span class="str">\'/enroll\'</span>, authenticate, <span class="kw">async</span> (req, res) => {\n' +
-    '  <span class="kw">const</span> { userId, courseId } = req.body;\n' +
-    '  <span class="kw">const</span> enrollment = <span class="kw">await</span> Enrollment.<span class="fn">create</span>({ userId, courseId });\n' +
-    '  <span class="fn">emitWebhook</span>(<span class="str">\'course.enrolled\'</span>, { userId, courseId });\n' +
-    '  res.<span class="fn">status</span>(201).<span class="fn">json</span>({ success: <span class="kw">true</span>, enrollment });\n' +
-    '});\n\n' +
-    '<span class="kw">module</span>.exports = router;' +
-    '</div></div>' +
-    '</div>';
+  /* ── Panel config para admin y profesor (su propio número) ── */
+  if(isAdmin || isProf) {
+    var myWa = isProf ? (u.whatsapp || '') : '';
+    if(isProf) {
+      html += '<div class="card" style="margin-bottom:24px;">' +
+        '<div style="font-size:14px;font-weight:600;margin-bottom:14px;">📱 Tu número de WhatsApp</div>' +
+        '<div style="font-size:13px;color:var(--text2);margin-bottom:12px;">Los alumnos verán este número para contactarte. Incluye el prefijo de país sin el +, por ejemplo: <code style="background:var(--bg3);padding:2px 6px;border-radius:4px;">34612345678</code></div>' +
+        '<div style="display:flex;gap:10px;">' +
+        '<input type="text" class="form-input" id="wa-own-number" value="'+myWa+'" placeholder="34612345678" style="flex:1;">' +
+        '<button class="btn btn-primary" onclick="saveOwnWhatsapp()">Guardar</button>' +
+        '</div></div>';
+    }
+    if(isAdmin) {
+      html += '<div class="card" style="margin-bottom:24px;">' +
+        '<div style="font-size:14px;font-weight:600;margin-bottom:14px;">⚙️ WhatsApp de los profesores</div>' +
+        '<div style="font-size:13px;color:var(--text2);margin-bottom:16px;">Asigna o edita el número de WhatsApp de cada profesor.</div>';
+      if(professors.length === 0) {
+        html += '<div style="text-align:center;padding:20px;color:var(--text3);font-size:13px;">No hay profesores registrados.</div>';
+      } else {
+        professors.forEach(function(p) {
+          var initials = p.name.split(' ').map(function(w){ return w[0]; }).join('').slice(0,2).toUpperCase();
+          html += '<div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);">' +
+            '<div style="width:36px;height:36px;border-radius:50%;background:rgba(124,92,252,0.15);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--accent2);flex-shrink:0;">'+initials+'</div>' +
+            '<div style="flex:1;font-size:14px;font-weight:500;">'+p.name+'</div>' +
+            '<input type="text" class="form-input" id="wa-admin-'+p.id+'" value="'+(p.whatsapp||'')+'" placeholder="34612345678" style="width:160px;font-size:13px;">' +
+            '<button class="btn btn-ghost btn-sm" onclick="saveWhatsappByAdmin(\''+p.id+'\')">Guardar</button>' +
+            '</div>';
+        });
+      }
+      html += '</div>';
+    }
+  }
 
+  /* ── Lista de profesores para contactar (todos los roles) ── */
+  html += '<div class="card">' +
+    '<div style="font-size:14px;font-weight:600;margin-bottom:6px;">Profesores disponibles</div>' +
+    '<div style="font-size:13px;color:var(--text2);margin-bottom:18px;">Haz clic en "Abrir WhatsApp" para enviar un mensaje directo a tu profesor.</div>';
+
+  if(professors.length === 0) {
+    html += '<div style="text-align:center;padding:30px;color:var(--text3);">No hay profesores activos en la plataforma.</div>';
+  } else {
+    professors.forEach(function(p) {
+      var initials = p.name.split(' ').map(function(w){ return w[0]; }).join('').slice(0,2).toUpperCase();
+      var coursesTaught = DB.courses.filter(function(c){ return c.professor === p.name; });
+      var hasWa = !!(p.whatsapp && p.whatsapp.trim());
+      var waNum = (p.whatsapp||'').trim().replace(/\D/g,'');
+      var waMsg = encodeURIComponent('Hola ' + p.name.split(' ')[0] + ', soy ' + u.name.split(' ')[0] + ' de MindLearn. Tengo una duda y me gustaría consultarte.');
+      var waUrl = 'https://wa.me/' + waNum + '?text=' + waMsg;
+
+      html += '<div style="display:flex;align-items:center;gap:16px;padding:16px;background:var(--bg3);border-radius:12px;margin-bottom:12px;">' +
+        '<div style="width:48px;height:48px;border-radius:50%;background:rgba(124,92,252,0.15);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:var(--accent2);flex-shrink:0;">'+initials+'</div>' +
+        '<div style="flex:1;">' +
+        '<div style="font-size:15px;font-weight:600;margin-bottom:2px;">'+p.name+'</div>' +
+        '<div style="font-size:12px;color:var(--text3);">' + (coursesTaught.length > 0 ? coursesTaught.map(function(c){ return c.emoji+' '+c.title; }).join(' · ') : 'Profesor') + '</div>' +
+        '</div>';
+
+      if(hasWa) {
+        html += '<a href="'+waUrl+'" target="_blank" rel="noopener" style="text-decoration:none;">' +
+          '<button class="btn" style="background:#25d366;color:#fff;border:none;gap:8px;padding:10px 18px;font-size:13px;font-weight:600;">' +
+          '<svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>' +
+          'Abrir WhatsApp</button></a>';
+      } else {
+        html += '<span style="font-size:12px;color:var(--text3);font-style:italic;">Número no configurado</span>';
+      }
+      html += '</div>';
+    });
+  }
+  html += '</div></div>';
   document.getElementById('plugin-content').innerHTML = html;
 }
 
-function endpointItem(method, path, desc) {
-  var colors = { GET:'tag-teal', POST:'tag-purple', PUT:'tag-amber', DELETE:'tag-rose' };
-  return '<div style="display:flex;align-items:center;gap:8px;padding:8px;background:var(--bg3);border-radius:6px;">' +
-    '<span class="tag '+colors[method]+'" style="width:44px;text-align:center;font-size:10px;">'+method+'</span>' +
-    '<span style="font-family:monospace;font-size:12px;color:var(--teal);flex:1;">'+path+'</span>' +
-    '<span style="font-size:11px;color:var(--text3);">'+desc+'</span></div>';
+function saveOwnWhatsapp() {
+  var num = document.getElementById('wa-own-number').value.trim().replace(/\D/g,'');
+  fstore.collection('users').doc(STATE.currentUser.id).update({ whatsapp: num })
+    .then(function() {
+      STATE.currentUser.whatsapp = num;
+      var u = DB.users.find(function(x){ return x.id === STATE.currentUser.id; });
+      if(u) u.whatsapp = num;
+      toast('Número guardado correctamente ✓','success');
+    }).catch(function(err){ toast('Error: '+err.message,'error'); });
 }
 
-function clearApiResult() {
-  document.getElementById('api-result').style.display = 'none';
-}
-
-function runApiCall() {
-  var ep = document.getElementById('api-endpoint').value;
-  var responses = {
-    courses: { status:'200 OK', data: { success:true, total:DB.courses.length, data: DB.courses.map(function(c){ return { id:c.id, title:c.title, category:c.category, modules:c.modules.length }; }) } },
-    users: { status:'200 OK', data: { success:true, total:DB.users.length, data: DB.users.map(function(u){ return { id:u.id, name:u.name, role:u.role, active:u.active }; }) } },
-    progress: { status:'200 OK', data: { success:true, userId:3, data: DB.progress[3] } },
-    stats: { status:'200 OK', data: { success:true, data: { students: DB.users.filter(function(u){ return u.role==='student'; }).length, courses: DB.courses.length, enrollments: DB.users.reduce(function(s,u){ return s+(u.enrollments?u.enrollments.length:0); },0) } } }
-  };
-  var r = responses[ep];
-  document.getElementById('api-status').textContent = r.status;
-  document.getElementById('api-status').style.color = 'var(--green)';
-  document.getElementById('api-output').textContent = JSON.stringify(r.data, null, 2);
-  document.getElementById('api-result').style.display = 'block';
+function saveWhatsappByAdmin(userId) {
+  var input = document.getElementById('wa-admin-'+userId);
+  if(!input) return;
+  var num = input.value.trim().replace(/\D/g,'');
+  fstore.collection('users').doc(userId).update({ whatsapp: num })
+    .then(function() {
+      var u = DB.users.find(function(x){ return x.id === userId; });
+      if(u) u.whatsapp = num;
+      toast('Número guardado ✓','success');
+    }).catch(function(err){ toast('Error: '+err.message,'error'); });
 }
 
 /* ─────────────────────────────────────────────
