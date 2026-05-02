@@ -1476,8 +1476,67 @@
     /* ── Progress ring ── */
     .progress-ring-wrap { transform: scale(0.85); }
 
-    /* ── Sticky header in course detail ── */
-    [style*="position:sticky"] { position: relative !important; top: auto !important; }
+    /* ── Course cards: footer stack ── */
+    .course-footer { flex-wrap: wrap; gap: 8px; }
+    .course-banner { height: 80px; }
+
+    /* ── Lesson content ── */
+    .lesson-body { padding: 16px; font-size: 14px; }
+    .lesson-title { font-size: 18px; }
+    .lesson-img { height: 180px; }
+    .lesson-video { height: 180px; }
+
+    /* ── Lesson nav buttons: stack on mobile ── */
+    .lesson-nav-btns {
+      flex-direction: column !important;
+      gap: 10px !important;
+    }
+    .lesson-nav-btns .btn { width: 100%; justify-content: center; }
+
+    /* ── Course detail sidebar: full width card ── */
+    .course-detail-sidebar {
+      position: relative !important;
+      top: auto !important;
+      width: 100%;
+    }
+    .course-detail-sidebar img { height: 140px !important; }
+
+    /* ── Quiz ── */
+    .quiz-container { max-width: 100%; }
+    .question-card { padding: 18px; }
+    .quiz-nav { flex-direction: column; gap: 10px; }
+    .quiz-nav .btn { width: 100%; justify-content: center; }
+    .answer-opt { padding: 12px 14px; font-size: 13px; }
+
+    /* ── Ensure no overflow anywhere ── */
+    [style*="max-width:700px"], [style*="max-width: 700px"] {
+      max-width: 100% !important;
+      width: 100% !important;
+    }
+    /* ── WhatsApp professor card: wrap on mobile ── */
+    #plugin-content [style*="flex:1"] { min-width: 0; }
+
+    /* ── Lesson index accordion on mobile ── */
+    .mob-lesson-index {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      margin-bottom: 16px;
+      overflow: hidden;
+    }
+    .mob-lesson-index-header {
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .mob-lesson-index-body { display: none; border-top: 1px solid var(--border); }
+    .mob-lesson-index.open .mob-lesson-index-body { display: block; }
+    .mob-lesson-index.open .mob-index-arrow { transform: rotate(180deg); }
+    .mob-index-arrow { transition: transform 0.2s; font-size: 11px; color: var(--text3); }
   }
 
   /* ══════════════════════════════════════════════════════════
@@ -2580,72 +2639,112 @@ function renderCourseDetail(courseId) {
   }
   var pct = totalLessons>0 ? Math.round(completedLessons/totalLessons*100) : 0;
 
-  var html = '<button class="btn btn-ghost btn-sm" onclick="navigate(\'courses\')" style="margin-bottom:20px;">← Volver al catálogo</button>' +
-    '<div style="display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:28px;align-items:start;">' +
-    '<div style="min-width:0;">' +
-    '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;"><span class="tag tag-purple">'+c.category+'</span></div>' +
-    '<h1 style="font-size:24px;font-weight:800;letter-spacing:-0.5px;margin-bottom:10px;line-height:1.2;">'+c.emoji+' '+c.title+'</h1>' +
-    '<p style="font-size:14px;color:var(--text2);font-weight:300;margin-bottom:18px;line-height:1.7;">'+c.description+'</p>' +
-    '<div style="display:flex;gap:16px;margin-bottom:20px;flex-wrap:wrap;">' +
+  var isMob = window.innerWidth <= 768;
+
+  // ── Shared: modules accordion ──
+  function buildModules() {
+    var mHtml = '';
+    c.modules.forEach(function(m, mi){
+      var modCompleted = m.lessons.filter(function(l){ return completedIds.includes(l.id); }).length;
+      mHtml += '<div class="module-accordion" id="mod-'+m.id+'">' +
+        '<div class="module-header" onclick="toggleModule('+m.id+')">' +
+        '<div class="module-header-left">' +
+        '<span class="module-num">Módulo '+(mi+1)+'</span>' +
+        '<span class="module-name">'+m.title+'</span>' +
+        '</div>' +
+        '<div style="display:flex;align-items:center;gap:10px;">' +
+        '<span style="font-size:12px;color:var(--text3);">'+modCompleted+'/'+m.lessons.length+'</span>' +
+        '<span class="module-toggle">▼</span>' +
+        '</div></div>' +
+        '<div class="module-lessons">';
+      m.lessons.forEach(function(l){
+        var done = completedIds.includes(l.id);
+        var checkIcon = done
+          ? '<span style="color:var(--green);font-size:12px;flex-shrink:0;">✓</span>'
+          : '<span style="width:12px;height:12px;border:1.5px solid var(--border2);border-radius:50%;display:inline-block;flex-shrink:0;"></span>';
+        var typeIcon = l.type==='video' ? '▶ ' : '';
+        mHtml += '<div class="module-lesson-item" onclick="navigate(\'lesson\',{courseId:'+c.id+',lessonId:'+l.id+'})">' +
+          checkIcon +
+          '<span style="flex:1;">'+l.title+'</span>' +
+          '<span style="font-size:11px;color:var(--text3);">'+typeIcon+l.duration+'</span>' +
+          '</div>';
+      });
+      mHtml += '</div></div>';
+    });
+    return mHtml;
+  }
+
+  // ── Shared: action card content ──
+  function buildActionCard() {
+    var aHtml = '';
+    if(isEnrolled) {
+      aHtml += '<div style="margin-bottom:14px;">' +
+        '<div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text2);margin-bottom:6px;"><span>Progreso</span><span>'+pct+'%</span></div>' +
+        '<div class="progress-bar-wrap"><div class="progress-bar" style="width:'+pct+'%"></div></div>' +
+        '<div style="font-size:12px;color:var(--text3);margin-top:4px;">'+completedLessons+' de '+totalLessons+' lecciones</div>' +
+        '</div>';
+      aHtml += '<button class="btn btn-primary" style="width:100%;margin-bottom:10px;" onclick="navigate(\'lesson\',{courseId:'+c.id+',lessonId:'+c.modules[0].lessons[0].id+'})">Continuar aprendiendo</button>';
+      aHtml += '<button class="btn btn-ghost" style="width:100%;" onclick="navigate(\'quiz\',{courseId:'+c.id+',quizId:'+c.quizzes[0].id+'})">📝 Hacer evaluación</button>';
+    } else if(u.role==='student') {
+      aHtml += '<p style="font-size:14px;color:var(--text2);margin-bottom:16px;font-weight:300;line-height:1.6;">Matricúlate para acceder a todo el contenido.</p>';
+      aHtml += '<button class="btn btn-primary" style="width:100%;" onclick="enrollCourse('+c.id+')">Matricularme ahora</button>';
+    } else {
+      aHtml += '<button class="btn btn-primary" style="width:100%;" onclick="navigate(\'lesson\',{courseId:'+c.id+',lessonId:'+c.modules[0].lessons[0].id+'})">Ver contenido</button>';
+    }
+    return aHtml;
+  }
+
+  var metaHtml =
+    '<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:18px;">' +
     '<span style="font-size:13px;color:var(--text2);">📦 '+c.modules.length+' módulos</span>' +
     '<span style="font-size:13px;color:var(--text2);">📖 '+totalLessons+' lecciones</span>' +
     '<span style="font-size:13px;color:var(--text2);">⏱ '+c.duration+'</span>' +
     '<span style="font-size:13px;color:var(--text2);">👤 '+c.professor+'</span>' +
-    '</div>' +
-    '<div style="font-size:14px;font-weight:700;margin-bottom:14px;">Contenido del curso</div>';
+    '</div>';
 
-  c.modules.forEach(function(m, mi){
-    var modCompleted = m.lessons.filter(function(l){ return completedIds.includes(l.id); }).length;
-    html += '<div class="module-accordion" id="mod-'+m.id+'">' +
-      '<div class="module-header" onclick="toggleModule('+m.id+')">' +
-      '<div class="module-header-left">' +
-      '<span class="module-num">Módulo '+(mi+1)+'</span>' +
-      '<span class="module-name">'+m.title+'</span>' +
+  var html = '<button class="btn btn-ghost btn-sm" onclick="navigate(\'courses\')" style="margin-bottom:16px;">← Volver</button>';
+
+  if(isMob) {
+    // ── MOBILE layout: single column, action card first ──
+    html +=
+      // Banner
+      '<div class="course-banner '+c.banner+'" style="border-radius:var(--radius);margin-bottom:14px;height:120px;">' +
+        '<span style="font-size:48px;">'+c.emoji+'</span>' +
       '</div>' +
-      '<div style="display:flex;align-items:center;gap:10px;">' +
-      '<span style="font-size:12px;color:var(--text3);">'+modCompleted+'/'+m.lessons.length+'</span>' +
-      '<span class="module-toggle">▼</span>' +
-      '</div></div>' +
-      '<div class="module-lessons">';
-    m.lessons.forEach(function(l){
-      var done = completedIds.includes(l.id);
-      var checkIcon = done
-        ? '<span style="color:var(--green);font-size:12px;flex-shrink:0;">✓</span>'
-        : '<span style="width:12px;height:12px;border:1.5px solid var(--border2);border-radius:50%;display:inline-block;flex-shrink:0;"></span>';
-      var typeIcon = l.type==='video' ? '▶ ' : '';
-      html += '<div class="module-lesson-item" onclick="navigate(\'lesson\',{courseId:'+c.id+',lessonId:'+l.id+'})">' +
-        checkIcon +
-        '<span style="flex:1;">'+l.title+'</span>' +
-        '<span style="font-size:11px;color:var(--text3);">'+typeIcon+l.duration+'</span>' +
-        '</div>';
-    });
-    html += '</div></div>';
-  });
-
-  html += '</div>';
-
-  // Sidebar card
-  html += '<div style="min-width:0;">' +
-    '<div class="card" style="position:sticky;top:84px;overflow:hidden;padding:0;">' +
-    '<img src="'+c.photo+'" alt="'+c.title+'" style="width:100%;height:180px;object-fit:cover;display:block;">' +
-    '<div style="padding:20px;">';
-
-  if(isEnrolled) {
-    html += '<div style="margin-bottom:16px;">' +
-      '<div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text2);margin-bottom:6px;"><span>Progreso</span><span>'+pct+'%</span></div>' +
-      '<div class="progress-bar-wrap"><div class="progress-bar" style="width:'+pct+'%"></div></div>' +
-      '<div style="font-size:12px;color:var(--text3);margin-top:4px;">'+completedLessons+' de '+totalLessons+' lecciones</div>' +
-      '</div>';
-    html += '<button class="btn btn-primary" style="width:100%;margin-bottom:10px;" onclick="navigate(\'lesson\',{courseId:'+c.id+',lessonId:'+c.modules[0].lessons[0].id+'})">Continuar aprendiendo</button>';
-    html += '<button class="btn btn-ghost" style="width:100%;" onclick="navigate(\'quiz\',{courseId:'+c.id+',quizId:'+c.quizzes[0].id+'})">📝 Hacer evaluación</button>';
-  } else if(u.role==='student') {
-    html += '<p style="font-size:14px;color:var(--text2);margin-bottom:16px;font-weight:300;">Matricúlate para acceder a todo el contenido del curso.</p>';
-    html += '<button class="btn btn-primary" style="width:100%;" onclick="enrollCourse('+c.id+')">Matricularme ahora</button>';
+      // Title + meta
+      '<span class="tag tag-purple" style="margin-bottom:10px;display:inline-block;">'+c.category+'</span>' +
+      '<h1 style="font-size:20px;font-weight:800;letter-spacing:-0.3px;margin-bottom:8px;line-height:1.2;">'+c.title+'</h1>' +
+      '<p style="font-size:14px;color:var(--text2);font-weight:300;margin-bottom:14px;line-height:1.6;">'+c.description+'</p>' +
+      metaHtml +
+      // Action card inline
+      '<div class="card" style="margin-bottom:20px;padding:16px;">' +
+        buildActionCard() +
+      '</div>' +
+      // Modules
+      '<div style="font-size:14px;font-weight:700;margin-bottom:12px;">Contenido del curso</div>' +
+      buildModules();
   } else {
-    html += '<button class="btn btn-primary" style="width:100%;" onclick="navigate(\'lesson\',{courseId:'+c.id+',lessonId:'+c.modules[0].lessons[0].id+'})">Ver contenido</button>';
+    // ── DESKTOP layout: two columns ──
+    html +=
+      '<div style="display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:28px;align-items:start;">' +
+        '<div style="min-width:0;">' +
+          '<span class="tag tag-purple" style="margin-bottom:10px;display:inline-block;">'+c.category+'</span>' +
+          '<h1 style="font-size:24px;font-weight:800;letter-spacing:-0.5px;margin-bottom:10px;line-height:1.2;">'+c.emoji+' '+c.title+'</h1>' +
+          '<p style="font-size:14px;color:var(--text2);font-weight:300;margin-bottom:18px;line-height:1.7;">'+c.description+'</p>' +
+          metaHtml +
+          '<div style="font-size:14px;font-weight:700;margin-bottom:14px;">Contenido del curso</div>' +
+          buildModules() +
+        '</div>' +
+        '<div class="course-detail-sidebar">' +
+          '<div class="card" style="position:sticky;top:84px;overflow:hidden;padding:0;">' +
+            '<img src="'+c.photo+'" alt="'+c.title+'" style="width:100%;height:180px;object-fit:cover;display:block;">' +
+            '<div style="padding:20px;">' +
+              buildActionCard() +
+            '</div>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
   }
-
-  html += '</div></div></div></div>';
 
   document.getElementById('course-detail-content').innerHTML = html;
   document.getElementById('header-title').textContent = c.title;
@@ -2654,6 +2753,11 @@ function renderCourseDetail(courseId) {
 
 function toggleModule(id) {
   var el = document.getElementById('mod-'+id);
+  if(el) el.classList.toggle('open');
+}
+
+function toggleMobIndex() {
+  var el = document.getElementById('mob-idx');
   if(el) el.classList.toggle('open');
 }
 
@@ -2726,18 +2830,18 @@ function renderLesson(params) {
   });
   contentHtml += '</div>';
 
-  contentHtml += '<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;">';
+  contentHtml += '<div class="lesson-nav-btns" style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:20px;">';
   if(prevLesson) contentHtml += '<button class="btn btn-ghost" onclick="navigate(\'lesson\',{courseId:'+c.id+',lessonId:'+prevLesson.lesson.id+'})">← Anterior</button>';
   else contentHtml += '<div></div>';
 
   if(!isDone) {
-    contentHtml += '<button class="btn btn-success" onclick="completeLesson('+courseId+','+lessonId+')">✓ Marcar como completada</button>';
+    contentHtml += '<button class="btn btn-success" onclick="completeLesson('+courseId+','+lessonId+')">✓ Completada</button>';
   } else {
-    contentHtml += '<span style="color:var(--green);font-size:13px;font-weight:500;">✓ Lección completada</span>';
+    contentHtml += '<span style="color:var(--green);font-size:13px;font-weight:500;text-align:center;">✓ Completada</span>';
   }
 
   if(nextLesson) contentHtml += '<button class="btn btn-primary" onclick="navigate(\'lesson\',{courseId:'+c.id+',lessonId:'+nextLesson.lesson.id+'})">Siguiente →</button>';
-  else contentHtml += '<button class="btn btn-primary" onclick="navigate(\'quiz\',{courseId:'+c.id+',quizId:'+c.quizzes[0].id+'})">📝 Ir a evaluación</button>';
+  else contentHtml += '<button class="btn btn-primary" onclick="navigate(\'quiz\',{courseId:'+c.id+',quizId:'+c.quizzes[0].id+'})">📝 Evaluación</button>';
   contentHtml += '</div>';
 
   // Sidebar
@@ -2758,8 +2862,22 @@ function renderLesson(params) {
   sideHtml += '</div>';
   sideHtml += '<div style="margin-top:12px;"><button class="btn btn-primary" style="width:100%;" onclick="navigate(\'quiz\',{courseId:'+c.id+',quizId:'+c.quizzes[0].id+'})">📝 Evaluación</button></div>';
 
-  document.getElementById('lesson-layout-content').innerHTML =
-    '<div>' + contentHtml + '</div><div>' + sideHtml + '</div>';
+  var isMob = window.innerWidth <= 768;
+
+  if(isMob) {
+    // Mobile: single column — collapsible index above content
+    var mobIndex = '<div class="mob-lesson-index" id="mob-idx">' +
+      '<div class="mob-lesson-index-header" onclick="toggleMobIndex()">' +
+        '<span>📋 Índice del curso</span><span class="mob-index-arrow">▼</span>' +
+      '</div>' +
+      '<div class="mob-lesson-index-body">' + sideHtml + '</div>' +
+    '</div>';
+    document.getElementById('lesson-layout-content').innerHTML =
+      '<div>' + mobIndex + contentHtml + '</div>';
+  } else {
+    document.getElementById('lesson-layout-content').innerHTML =
+      '<div>' + contentHtml + '</div><div>' + sideHtml + '</div>';
+  }
 
   document.getElementById('header-title').textContent = lesson.title;
   document.getElementById('header-sub').textContent = c.title + ' · ' + moduleOfLesson.title;
@@ -3290,9 +3408,9 @@ function renderCreateCourse() {
     '<button class="btn btn-ghost btn-sm" onclick="addCCQuestion()" style="margin-top:10px;">+ Añadir Pregunta</button>' +
     '</div>' +
 
-    '<div style="margin-top:20px;display:flex;gap:10px;">' +
-    '<button class="btn btn-primary" onclick="publishCourse()">Publicar Curso</button>' +
-    '<button class="btn btn-ghost" onclick="navigate(\'courses\')">Cancelar</button>' +
+    '<div style="margin-top:20px;display:flex;gap:10px;flex-wrap:wrap;">' +
+    '<button class="btn btn-primary" style="flex:1;min-width:140px;justify-content:center;" onclick="publishCourse()">Publicar Curso</button>' +
+    '<button class="btn btn-ghost" style="flex:1;min-width:100px;justify-content:center;" onclick="navigate(\'courses\')">Cancelar</button>' +
     '</div></div>';
 
   document.getElementById('create-course-content').innerHTML = html;
@@ -3323,9 +3441,9 @@ function addCCQuestion() {
   var cont = document.getElementById('cc-questions');
   var div = document.createElement('div');
   div.style.cssText = 'background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:10px;';
-  div.innerHTML = '<div style="display:flex;gap:10px;margin-bottom:10px;">' +
-    '<input type="text" class="form-input" placeholder="Pregunta '+(idx+1)+'" style="flex:1;" oninput="ccQuestions['+idx+'].text=this.value">' +
-    '<select class="form-select" style="width:180px;" onchange="ccQuestions['+idx+'].type=this.value"><option value="multiple">Opción múltiple</option><option value="truefalse">Verdadero/Falso</option></select>' +
+  div.innerHTML = '<div style="display:flex;gap:10px;margin-bottom:10px;flex-wrap:wrap;">' +
+    '<input type="text" class="form-input" placeholder="Pregunta '+(idx+1)+'" style="flex:2;min-width:200px;" oninput="ccQuestions['+idx+'].text=this.value">' +
+    '<select class="form-select" style="flex:1;min-width:150px;" onchange="ccQuestions['+idx+'].type=this.value"><option value="multiple">Opción múltiple</option><option value="truefalse">Verdadero/Falso</option></select>' +
     '</div>';
   cont.appendChild(div);
 }
@@ -3368,10 +3486,10 @@ function renderPlugin() {
   var isProf  = u.role === 'professor';
   var professors = DB.users.filter(function(x){ return x.role === 'professor' && x.active; });
 
-  var html = '<div style="max-width:700px;">';
+  var html = '<div style="max-width:700px;width:100%;">';
 
   /* ── Banner informativo ── */
-  html += '<div style="background:linear-gradient(135deg,rgba(37,211,102,0.12),rgba(37,211,102,0.04));border:1px solid rgba(37,211,102,0.25);border-radius:16px;padding:24px;display:flex;align-items:center;gap:18px;margin-bottom:28px;">' +
+  html += '<div style="background:linear-gradient(135deg,rgba(37,211,102,0.12),rgba(37,211,102,0.04));border:1px solid rgba(37,211,102,0.25);border-radius:16px;padding:20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:24px;">' +
     '<div style="width:56px;height:56px;background:rgba(37,211,102,0.15);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;">' +
     '<svg width="28" height="28" fill="#25d366" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>' +
     '</div>' +
@@ -3387,8 +3505,8 @@ function renderPlugin() {
       html += '<div class="card" style="margin-bottom:24px;">' +
         '<div style="font-size:14px;font-weight:600;margin-bottom:14px;">📱 Tu número de WhatsApp</div>' +
         '<div style="font-size:13px;color:var(--text2);margin-bottom:12px;">Los alumnos verán este número para contactarte. Incluye el prefijo de país sin el +, por ejemplo: <code style="background:var(--bg3);padding:2px 6px;border-radius:4px;">34612345678</code></div>' +
-        '<div style="display:flex;gap:10px;">' +
-        '<input type="text" class="form-input" id="wa-own-number" value="'+myWa+'" placeholder="34612345678" style="flex:1;">' +
+        '<div style="display:flex;gap:10px;flex-wrap:wrap;">' +
+        '<input type="text" class="form-input" id="wa-own-number" value="'+myWa+'" placeholder="34612345678" style="flex:1;min-width:160px;">' +
         '<button class="btn btn-primary" onclick="saveOwnWhatsapp()">Guardar</button>' +
         '</div></div>';
     }
@@ -3401,10 +3519,10 @@ function renderPlugin() {
       } else {
         professors.forEach(function(p) {
           var initials = p.name.split(' ').map(function(w){ return w[0]; }).join('').slice(0,2).toUpperCase();
-          html += '<div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);">' +
-            '<div style="width:36px;height:36px;border-radius:50%;background:rgba(124,92,252,0.15);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--accent2);flex-shrink:0;">'+initials+'</div>' +
-            '<div style="flex:1;font-size:14px;font-weight:500;">'+p.name+'</div>' +
-            '<input type="text" class="form-input" id="wa-admin-'+p.id+'" value="'+(p.whatsapp||'')+'" placeholder="34612345678" style="width:160px;font-size:13px;">' +
+          html += '<div style="display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid var(--border);flex-wrap:wrap;">' +
+            '<div style="width:34px;height:34px;border-radius:50%;background:rgba(124,92,252,0.15);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--accent2);flex-shrink:0;">'+initials+'</div>' +
+            '<div style="flex:1;min-width:100px;font-size:14px;font-weight:500;">'+p.name+'</div>' +
+            '<input type="text" class="form-input" id="wa-admin-'+p.id+'" value="'+(p.whatsapp||'')+'" placeholder="34612345678" style="width:150px;min-width:120px;flex:1;font-size:13px;">' +
             '<button class="btn btn-ghost btn-sm" onclick="saveWhatsappByAdmin(\''+p.id+'\')">Guardar</button>' +
             '</div>';
         });
@@ -3429,7 +3547,7 @@ function renderPlugin() {
       var waMsg = encodeURIComponent('Hola ' + p.name.split(' ')[0] + ', soy ' + u.name.split(' ')[0] + ' de MindLearn. Tengo una duda y me gustaría consultarte.');
       var waUrl = 'https://wa.me/' + waNum + '?text=' + waMsg;
 
-      html += '<div style="display:flex;align-items:center;gap:16px;padding:16px;background:var(--bg3);border-radius:12px;margin-bottom:12px;">' +
+      html += '<div style="display:flex;align-items:center;gap:14px;padding:14px;background:var(--bg3);border-radius:12px;margin-bottom:10px;flex-wrap:wrap;">' +
         '<div style="width:48px;height:48px;border-radius:50%;background:rgba(124,92,252,0.15);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:var(--accent2);flex-shrink:0;">'+initials+'</div>' +
         '<div style="flex:1;">' +
         '<div style="font-size:15px;font-weight:600;margin-bottom:2px;">'+p.name+'</div>' +
