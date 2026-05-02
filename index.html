@@ -1376,16 +1376,29 @@
 
     /* ── App layout ── */
     .sidebar { display: none !important; }
-    .main { margin-left: 0 !important; }
+    .main { margin-left: 0 !important; overflow-x: hidden; }
+    body { overflow-x: hidden; }
 
-    /* ── Header ── */
-    .header { padding: 0 16px; height: 54px; }
+    /* ── Header: respeta la barra de estado del iPhone ── */
+    .header {
+      padding-left: 16px;
+      padding-right: 16px;
+      padding-top: env(safe-area-inset-top, 0px);
+      padding-bottom: 0;
+      height: calc(54px + env(safe-area-inset-top, 0px));
+      align-items: flex-end;
+      padding-bottom: 10px;
+    }
     .header-left p { display: none; }
     .header-left h2 { font-size: 15px; }
+    /* Badge más compacto en móvil para no desbordar */
+    #header-badge { font-size: 9px !important; padding: 2px 6px !important; max-width: 74px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    /* Botón cerrar sesión visible solo en móvil */
+    .mob-logout-btn { display: flex !important; }
 
     /* ── Page content ── */
     .page-content {
-      padding: 14px 14px 82px;   /* bottom gap for nav bar */
+      padding: 14px 14px 90px;   /* bottom gap for nav bar + safe area */
     }
 
     /* ── Stats: 2×2 ── */
@@ -1557,11 +1570,12 @@
     display: none; /* shown via JS on mobile */
     position: fixed;
     bottom: 0; left: 0; right: 0;
-    height: 62px;
+    /* La altura crece con el safe-area para que el contenido siempre tenga 62px */
+    height: calc(62px + env(safe-area-inset-bottom, 0px));
     background: var(--bg2);
     border-top: 1px solid var(--border);
     z-index: 200;
-    align-items: stretch;
+    align-items: flex-start; /* items alineados arriba dentro de sus 62px */
     padding: 0 6px;
     padding-bottom: env(safe-area-inset-bottom, 0px);
     box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
@@ -1609,8 +1623,25 @@
   }
   .mob-nav-item.active::before { width: 20px; }
 
+  /* Botón logout solo visible en móvil */
+  .mob-logout-btn {
+    display: none;
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text3);
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: var(--transition);
+  }
+  .mob-logout-btn:active { border-color: var(--rose); color: var(--rose); }
+
   @media (min-width: 769px) {
     #mobile-nav { display: none !important; }
+    .mob-logout-btn { display: none !important; }
   }
 </style>
 </head>
@@ -1759,6 +1790,9 @@
         <button class="theme-toggle" id="theme-toggle-btn" onclick="toggleTheme()" title="Cambiar tema"></button>
         <span class="badge" id="header-badge">Admin</span>
         <div style="width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:700;font-size:13px;" id="header-avatar" class="user-avatar avatar-admin">AD</div>
+        <button class="mob-logout-btn" onclick="doLogout()" title="Cerrar sesión">
+          <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+        </button>
       </div>
     </header>
 
