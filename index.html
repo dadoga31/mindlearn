@@ -2047,8 +2047,10 @@ function setupUI() {
     document.getElementById('nav-plugin').style.display         = 'flex';
     document.getElementById('btn-new-course').style.display     = 'inline-flex';
   } else if(u.role==='professor') {
-    // Professor: create courses + WhatsApp — no user management, no analytics
+    // Professor: same as admin except no new-course button (can create via nav)
     document.getElementById('nav-section-manage').style.display = 'block';
+    document.getElementById('nav-users').style.display          = 'flex';
+    document.getElementById('nav-analytics').style.display      = 'flex';
     document.getElementById('nav-create-course').style.display  = 'flex';
     document.getElementById('nav-plugin').style.display         = 'flex';
   } else {
@@ -2064,15 +2066,10 @@ function setupUI() {
 function navigate(page, params) {
   // Role-based access guard
   var role = STATE.currentUser ? STATE.currentUser.role : null;
-  var adminOnly  = ['users', 'analytics'];
-  var staffOnly  = ['create-course'];   // admin + professor
-  var studentOff = adminOnly.concat(staffOnly);
+  var studentOff = ['users', 'analytics', 'create-course'];
 
   if(role === 'student' && studentOff.indexOf(page) > -1) {
     return; // students cannot access these pages
-  }
-  if(role === 'professor' && adminOnly.indexOf(page) > -1) {
-    return; // professors cannot access admin-only pages
   }
 
   document.querySelectorAll('.page').forEach(function(p){ p.classList.remove('active'); });
