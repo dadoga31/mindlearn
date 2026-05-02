@@ -354,7 +354,7 @@
 
   .btn-ghost:hover { background: var(--bg3); color: var(--text); border-color: var(--border2); }
 
-  .btn-sm { padding: 8px 16px; font-size: 13px; }
+  .btn-sm { padding: 5px 10px; font-size: 12px; }
 
   .btn-danger { background: rgba(251,113,133,0.15); color: var(--rose); border: 1px solid rgba(251,113,133,0.2); }
   .btn-danger:hover { background: rgba(251,113,133,0.25); }
@@ -802,13 +802,14 @@
 
   thead th {
     text-align: left;
-    padding: 10px 16px;
+    padding: 8px 10px;
     font-size: 11px;
     font-weight: 600;
     color: var(--text3);
     text-transform: uppercase;
-    letter-spacing: 0.8px;
+    letter-spacing: 0.6px;
     border-bottom: 1px solid var(--border);
+    white-space: nowrap;
   }
 
   tbody tr {
@@ -820,9 +821,9 @@
   tbody tr:last-child { border-bottom: none; }
 
   tbody td {
-    padding: 13px 16px;
+    padding: 10px 10px;
     color: var(--text);
-    font-size: 14px;
+    font-size: 13px;
   }
 
   /* ─── LESSON VIEW ─── */
@@ -1587,9 +1588,8 @@
                 <thead>
                   <tr>
                     <th>Usuario</th>
-                    <th>Correo</th>
                     <th>Rol</th>
-                    <th>Matriculaciones</th>
+                    <th>Matrículas</th>
                     <th>Registro</th>
                     <th>Estado</th>
                     <th>Acciones</th>
@@ -2768,24 +2768,23 @@ function renderUsersTable(users) {
     var initials = u.name.split(' ').map(function(w){ return w[0]; }).join('').slice(0,2).toUpperCase();
     var enrolled = (u.enrollments||[]).length;
     html += '<tr>' +
-      '<td><div style="display:flex;align-items:center;gap:10px;cursor:pointer;" onclick="openUserDetail(\''+u.id+'\')">' +
-      '<div style="width:32px;height:32px;border-radius:50%;background:var(--bg4);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;">'+initials+'</div>' +
-      '<div><div style="font-weight:500;">'+u.name+'</div><div style="font-size:11px;color:var(--text3);">'+u.email+'</div></div>' +
+      '<td><div style="display:flex;align-items:center;gap:8px;cursor:pointer;" onclick="openUserDetail(\''+u.id+'\')">' +
+      '<div style="width:30px;height:30px;border-radius:50%;background:var(--bg4);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;">'+initials+'</div>' +
+      '<div style="min-width:0;"><div style="font-weight:500;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px;">'+u.name+'</div><div style="font-size:11px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px;">'+u.email+'</div></div>' +
       '</div></td>' +
-      '<td style="color:var(--text2);">'+u.email+'</td>' +
       '<td><span class="badge '+badgeCls+'">'+roleLabel+'</span></td>' +
-      '<td style="color:var(--text2);">'+(u.role==='student'?enrolled+' curso'+(enrolled!==1?'s':''):'—')+'</td>' +
-      '<td style="color:var(--text2);font-size:13px;">'+(u.created||'—')+'</td>' +
+      '<td style="color:var(--text2);text-align:center;">'+(u.role==='student'?enrolled:'—')+'</td>' +
+      '<td style="color:var(--text2);font-size:12px;white-space:nowrap;">'+(u.created||'—')+'</td>' +
       '<td><span class="tag '+(u.active?'tag-green':'tag-rose')+'">'+(u.active?'Activo':'Inactivo')+'</span></td>' +
-      '<td><div class="action-btns">' +
+      '<td><div class="action-btns" style="flex-wrap:nowrap;">' +
       '<button class="btn btn-ghost btn-sm" onclick="openUserDetail(\''+u.id+'\')">Ver</button>' +
       '<button class="btn btn-ghost btn-sm" onclick="editUser(\''+u.id+'\')">Editar</button>' +
-      (u.id!==STATE.currentUser.id ? '<button class="btn btn-danger btn-sm" onclick="toggleUser(\''+u.id+'\')">'+(u.active?'Desactivar':'Activar')+'</button>' : '') +
+      (u.id!==STATE.currentUser.id ? '<button class="btn btn-danger btn-sm" onclick="toggleUser(\''+u.id+'\')">'+(u.active?'Desact.':'Activar')+'</button>' : '') +
       (u.id!==STATE.currentUser.id ? '<button class="btn btn-danger btn-sm" onclick="deleteUser(\''+u.id+'\')">Eliminar</button>' : '') +
       '</div></td>' +
       '</tr>';
   });
-  document.getElementById('users-table-body').innerHTML = html || '<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--text3);">Sin resultados</td></tr>';
+  document.getElementById('users-table-body').innerHTML = html || '<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--text3);">Sin resultados</td></tr>';
 }
 
 function editUser(id) {
