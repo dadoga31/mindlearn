@@ -2029,21 +2029,32 @@ function setupUI() {
   document.getElementById('header-badge').className = 'badge '+badgeClass;
   document.getElementById('header-badge').textContent = roleLabel;
 
-  // Show/hide nav items
-  document.getElementById('nav-progress').style.display = u.role==='student' ? 'flex' : 'none';
-  document.getElementById('nav-section-manage').style.display = 'block';
+  // Reset all restricted nav items first
+  document.getElementById('nav-progress').style.display      = 'none';
+  document.getElementById('nav-section-manage').style.display = 'none';
+  document.getElementById('nav-create-course').style.display  = 'none';
+  document.getElementById('nav-users').style.display          = 'none';
+  document.getElementById('nav-analytics').style.display      = 'none';
+  document.getElementById('nav-plugin').style.display         = 'none';
+  document.getElementById('btn-new-course').style.display     = 'none';
 
   if(u.role==='admin') {
-    document.getElementById('nav-users').style.display = 'flex';
-    document.getElementById('nav-analytics').style.display = 'flex';
-    document.getElementById('nav-plugin').style.display = 'flex';
-    document.getElementById('btn-new-course').style.display = 'inline-flex';
+    // Admin: full access — users, analytics, create course, WhatsApp, new-course button
+    document.getElementById('nav-section-manage').style.display = 'block';
+    document.getElementById('nav-users').style.display          = 'flex';
+    document.getElementById('nav-analytics').style.display      = 'flex';
+    document.getElementById('nav-create-course').style.display  = 'flex';
+    document.getElementById('nav-plugin').style.display         = 'flex';
+    document.getElementById('btn-new-course').style.display     = 'inline-flex';
   } else if(u.role==='professor') {
-    document.getElementById('nav-create-course').style.display = 'flex';
-    document.getElementById('nav-plugin').style.display = 'flex';
-  } else if(u.role==='student') {
-    document.getElementById('nav-plugin').style.display = 'flex';
-    document.getElementById('btn-new-course').style.display = 'inline-flex';
+    // Professor: create courses + WhatsApp — no user management, no analytics
+    document.getElementById('nav-section-manage').style.display = 'block';
+    document.getElementById('nav-create-course').style.display  = 'flex';
+    document.getElementById('nav-plugin').style.display         = 'flex';
+  } else {
+    // Student: own progress + WhatsApp only
+    document.getElementById('nav-progress').style.display = 'flex';
+    document.getElementById('nav-plugin').style.display   = 'flex';
   }
 }
 
@@ -2051,6 +2062,19 @@ function setupUI() {
    NAVIGATION
 ───────────────────────────────────────────── */
 function navigate(page, params) {
+  // Role-based access guard
+  var role = STATE.currentUser ? STATE.currentUser.role : null;
+  var adminOnly  = ['users', 'analytics'];
+  var staffOnly  = ['create-course'];   // admin + professor
+  var studentOff = adminOnly.concat(staffOnly);
+
+  if(role === 'student' && studentOff.indexOf(page) > -1) {
+    return; // students cannot access these pages
+  }
+  if(role === 'professor' && adminOnly.indexOf(page) > -1) {
+    return; // professors cannot access admin-only pages
+  }
+
   document.querySelectorAll('.page').forEach(function(p){ p.classList.remove('active'); });
   document.querySelectorAll('.nav-item').forEach(function(n){ n.classList.remove('active'); });
 
