@@ -1,12 +1,6 @@
 {
-  "version": 2,
-  "routes": [
-    { "src": "/landing", "dest": "/landing.html" },
-    { "src": "/sw\\.js", "dest": "/sw.js" },
-    { "src": "/manifest\\.json", "dest": "/manifest.json" },
-    { "src": "/icon-192\\.png", "dest": "/icon-192.png" },
-    { "src": "/icon-512\\.png", "dest": "/icon-512.png" },
-    { "src": "/apple-touch-icon\\.png", "dest": "/apple-touch-icon.png" },
-    { "src": "/(.*)", "dest": "/index.html" }
+  "rewrites": [
+    { "source": "/landing", "destination": "/landing.html" },
+    { "source": "/((?!.*\\.).+)", "destination": "/index.html" }
   ]
 }
