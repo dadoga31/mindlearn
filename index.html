@@ -2604,9 +2604,13 @@ function renderDashboard() {
         return '<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);">' +
           '<div style="width:32px;height:32px;border-radius:50%;background:var(--bg4);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;">' +
           u2.name.split(' ').map(function(w){ return w[0]; }).join('').slice(0,2) + '</div>' +
-          '<div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + u2.name + '</div>' +
-          '<div style="font-size:11px;color:var(--text3);">' + u2.created + '</div></div>' +
-          '<span class="badge '+badge+'" style="font-size:10px;">'+label+'</span></div>';
+          '<div style="flex:1;min-width:0;">' +
+            '<div style="font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + u2.name + '</div>' +
+            '<div style="display:flex;align-items:center;gap:6px;margin-top:2px;">' +
+              '<span style="font-size:11px;color:var(--text3);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + u2.created + '</span>' +
+              '<span class="badge '+badge+'" style="font-size:9px;flex-shrink:0;padding:2px 7px;">'+label+'</span>' +
+            '</div>' +
+          '</div></div>';
       }).join('') + '</div>';
   } else if(u.role==='professor') {
     stats = [
@@ -2651,10 +2655,14 @@ function renderDashboard() {
   document.getElementById('dash-courses-list').innerHTML = coursesToShow.slice(0,3).map(function(c){
     return '<div class="card card-sm mb-2" style="cursor:pointer;transition:var(--transition);" onclick="navigate(\'course-detail\','+c.id+')" onmouseover="this.style.borderColor=\'var(--accent)\'" onmouseout="this.style.borderColor=\'var(--border)\'">' +
       '<div style="display:flex;align-items:center;gap:12px;">' +
-      '<div style="font-size:24px;">'+c.emoji+'</div>' +
-      '<div style="flex:1;min-width:0;"><div style="font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+c.title+'</div>' +
-      '<div style="font-size:12px;color:var(--text2);">'+c.modules.length+' módulos · '+c.duration+'</div></div>' +
-      '<span class="tag tag-purple">'+c.category+'</span>' +
+      '<div style="font-size:24px;flex-shrink:0;line-height:1;">'+c.emoji+'</div>' +
+      '<div style="flex:1;min-width:0;">' +
+        '<div style="font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:3px;">'+c.title+'</div>' +
+        '<div style="display:flex;align-items:center;gap:8px;">' +
+          '<span style="font-size:12px;color:var(--text2);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+c.modules.length+' módulos · '+c.duration+'</span>' +
+          '<span class="tag tag-purple" style="flex-shrink:0;font-size:10px;padding:2px 8px;">'+c.category+'</span>' +
+        '</div>' +
+      '</div>' +
       '</div></div>';
   }).join('') + (coursesToShow.length===0 ? '<div class="card card-sm"><div class="empty-state" style="padding:30px 20px;"><div class="icon">📭</div><h3>Sin cursos</h3><p>Explora el catálogo para matricularte</p></div></div>' : '');
 }
