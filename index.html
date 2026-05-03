@@ -2745,6 +2745,13 @@ function renderMyGrades(u) {
 /* ─────────────────────────────────────────────
    COURSES
 ───────────────────────────────────────────── */
+function getCourseProfessor(course) {
+  var profs = DB.users.filter(function(u){ return u.role === 'professor' && u.active; });
+  if(profs.length === 0) return course.professor || 'Profesor';
+  var match = profs.find(function(p){ return p.name === course.professor; });
+  return match ? match.name : profs[0].name;
+}
+
 function renderCourses() {
   var u = STATE.currentUser;
   var html = '';
@@ -2774,7 +2781,7 @@ function renderCourses() {
       if(isEnrolled) html += '<span class="enrolled-badge">✓ Matriculado · '+pct+'% completado</span>';
       else html += '<span style="font-size:12px;color:var(--text3);">No matriculado</span>';
     } else {
-      html += '<span style="font-size:12px;color:var(--text2);">👤 '+c.professor+'</span>';
+      html += '<span style="font-size:12px;color:var(--text2);">👤 '+getCourseProfessor(c)+'</span>';
     }
     html += '<button class="btn btn-ghost btn-sm">Ver curso →</button>';
     html += '</div></div></div>';
@@ -2861,7 +2868,7 @@ function renderCourseDetail(courseId) {
     '<span style="font-size:13px;color:var(--text2);">📦 '+c.modules.length+' módulos</span>' +
     '<span style="font-size:13px;color:var(--text2);">📖 '+totalLessons+' lecciones</span>' +
     '<span style="font-size:13px;color:var(--text2);">⏱ '+c.duration+'</span>' +
-    '<span style="font-size:13px;color:var(--text2);">👤 '+c.professor+'</span>' +
+    '<span style="font-size:13px;color:var(--text2);">👤 '+getCourseProfessor(c)+'</span>' +
     '</div>';
 
   var html = '<button class="btn btn-ghost btn-sm" onclick="navigate(\'courses\')" style="margin-bottom:16px;">← Volver</button>';
