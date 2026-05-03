@@ -54,7 +54,7 @@ body {
   pointer-events: none;
   z-index: 9998;
   transform: translate(-50%,-50%);
-  transition: all .12s ease;
+  transition: width .18s ease, height .18s ease, border-color .18s ease;
 }
 body:has(a:hover) #cursor,
 body:has(button:hover) #cursor { width: 20px; height: 20px; background: #fff; }
@@ -101,10 +101,9 @@ nav {
   align-items: center;
   justify-content: space-between;
   padding: 18px 48px;
-  background: rgba(10,10,20,0);
-  backdrop-filter: blur(0px);
+  background: transparent;
   border-bottom: 1px solid transparent;
-  transition: all .4s ease;
+  transition: background .4s ease, border-color .4s ease, padding .4s ease, backdrop-filter .4s ease;
 }
 nav.scrolled {
   background: rgba(10,10,20,0.88);
@@ -123,10 +122,10 @@ nav.scrolled {
   animation: logoPulse 3s ease-in-out infinite;
 }
 @keyframes logoPulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.15)} }
-.nav-links { display: flex; align-items: center; gap: 36px; list-style: none; }
+.nav-links { display: flex; align-items: center; gap: 28px; list-style: none; flex-shrink: 0; white-space: nowrap; }
 .nav-links a {
   color: var(--text2); text-decoration: none; font-size: 14px; font-weight: 500;
-  transition: color .2s; position: relative;
+  transition: color .2s; position: relative; white-space: nowrap;
 }
 .nav-links a::after {
   content: ''; position: absolute; bottom: -4px; left: 0; right: 0; height: 1px;
@@ -136,9 +135,9 @@ nav.scrolled {
 .nav-links a:hover { color: var(--text1); }
 .nav-links a:hover::after { transform: scaleX(1); transform-origin: left; }
 .nav-cta {
-  background: var(--accent); color: #fff !important; padding: 10px 24px;
+  background: var(--accent); color: #fff !important; padding: 10px 22px;
   border-radius: 10px; font-weight: 600 !important; font-size: 14px !important;
-  position: relative; overflow: hidden;
+  position: relative; overflow: hidden; flex-shrink: 0; white-space: nowrap;
 }
 .nav-cta::before {
   content: ''; position: absolute; inset: 0;
