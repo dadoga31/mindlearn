@@ -1537,6 +1537,39 @@
       max-width: 100% !important;
       width: 100% !important;
     }
+
+    /* ── Sobreescribir inline min-widths generados por JS ── */
+    [style*="min-width:200px"], [style*="min-width: 200px"] {
+      min-width: 0 !important; flex: 1 1 100% !important;
+    }
+    [style*="min-width:160px"], [style*="min-width: 160px"],
+    [style*="min-width:150px"], [style*="min-width: 150px"],
+    [style*="min-width:140px"], [style*="min-width: 140px"],
+    [style*="min-width:120px"], [style*="min-width: 120px"],
+    [style*="min-width:100px"], [style*="min-width: 100px"] {
+      min-width: 0 !important;
+    }
+    /* inputs/selects en flex-row: ocupan el 100% cuando el contenedor envuelve */
+    .form-input, .form-select { width: 100%; min-width: 0 !important; }
+
+    /* ── Inline widths fijos de inputs ── */
+    [style*="width:150px"], [style*="width: 150px"] { width: 100% !important; }
+    [style*="width:300px"], [style*="width: 300px"] { width: 100% !important; }
+
+    /* ── Header: title no se desborda ── */
+    .header-left { flex: 1; min-width: 0; overflow: hidden; }
+    .header-left h2 { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+
+    /* ── Grids inline con columna fija ── */
+    [style*="grid-template-columns:minmax(0,1fr) 300px"],
+    [style*="grid-template-columns: minmax(0,1fr) 300px"] {
+      grid-template-columns: 1fr !important;
+    }
+    /* Analytics roles grid ── minmax(240px) ── colapsa a 1 col */
+    [style*="minmax(240px"], [style*="minmax(240px,"] {
+      grid-template-columns: repeat(2, 1fr) !important;
+    }
+
     /* ── WhatsApp professor card: wrap on mobile ── */
     #plugin-content [style*="flex:1"] { min-width: 0; }
 
@@ -1561,6 +1594,42 @@
     .mob-lesson-index.open .mob-lesson-index-body { display: block; }
     .mob-lesson-index.open .mob-index-arrow { transform: rotate(180deg); }
     .mob-index-arrow { transition: transform 0.2s; font-size: 11px; color: var(--text3); }
+  }
+
+  /* ══════════════════════════════════════════════════════════
+     EXTRA SMALL — iPhone SE / 12 mini / teléfonos ≤ 390px
+  ══════════════════════════════════════════════════════════ */
+  @media (max-width: 390px) {
+    /* Stats: 1 sola columna en pantallas muy pequeñas */
+    .stats-grid { grid-template-columns: 1fr !important; }
+
+    /* Auth card: menos padding para caber en pantalla */
+    .auth-card { padding: 44px 16px 28px !important; }
+
+    /* Header: ocultar badge en pantallas muy estrechas */
+    #header-badge { display: none !important; }
+
+    /* Header right: menos gap */
+    .header-right { gap: 8px !important; }
+
+    /* Page content: menos padding lateral */
+    .page-content { padding-left: 10px !important; padding-right: 10px !important; }
+
+    /* Cards: menos padding */
+    .card { padding: 12px !important; }
+    .stat-card { padding: 11px 10px !important; }
+
+    /* Títulos más compactos */
+    .auth-title { font-size: 20px !important; }
+    .section-title, h1 { font-size: 18px !important; }
+
+    /* Analytics grid: 1 columna en pantallas muy pequeñas */
+    [style*="minmax(240px"], [style*="minmax(240px,"] {
+      grid-template-columns: 1fr !important;
+    }
+
+    /* Botones crear curso: columna */
+    [style*="min-width:140px"] { width: 100% !important; flex: 1 1 100% !important; }
   }
 
   /* ══════════════════════════════════════════════════════════
