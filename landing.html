@@ -8,6 +8,7 @@
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧠</text></svg>">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -554,7 +555,8 @@ footer a:hover { color: var(--text1); }
 <!-- NAV -->
 <nav id="nav">
   <a href="#" class="nav-logo">
-    <span class="nav-logo-icon">🧠</span> MindLearn
+    <img src="/icon-192.png" alt="MindLearn" class="nav-logo-icon" style="width:30px;height:30px;border-radius:8px;object-fit:cover;">
+    MindLearn
   </a>
   <ul class="nav-links">
     <li><a href="#features">Funcionalidades</a></li>
@@ -698,7 +700,7 @@ footer a:hover { color: var(--text1); }
       <p class="section-sub">Desarrollado con metodología Scrum y herramientas colaborativas profesionales.</p>
     </div>
     <div class="team-grid">
-      <div class="team-card reveal from-left"><div class="team-avatar">DE</div><div class="team-name">Desiree</div><div class="team-role">Diseño UI/UX · Contenido · Testing</div><ul class="team-tasks"><li>Identidad visual y sistema de diseño</li><li>Maquetación de todas las vistas</li><li>Diseño responsive para móvil</li><li>Contenido académico de los cursos</li><li>Evaluaciones y cuestionarios</li><li>Pruebas en dispositivos reales</li></ul></div>
+      <div class="team-card reveal from-left"><div class="team-avatar">DE</div><div class="team-name">Desirée</div><div class="team-role">Diseño UI/UX · Contenido · Testing</div><ul class="team-tasks"><li>Identidad visual y sistema de diseño</li><li>Maquetación de todas las vistas</li><li>Diseño responsive para móvil</li><li>Contenido académico de los cursos</li><li>Evaluaciones y cuestionarios</li><li>Pruebas en dispositivos reales</li></ul></div>
       <div class="team-card reveal from-right"><div class="team-avatar">SB</div><div class="team-name">Sebastián</div><div class="team-role">Backend · Despliegue · Func. Avanzada</div><ul class="team-tasks"><li>Arquitectura SPA y lógica JS</li><li>Integración Firebase Auth + Firestore</li><li>Control de acceso por roles</li><li>CI/CD con GitHub y Vercel</li><li>PWA e integración WhatsApp</li><li>Panel de administración y analítica</li></ul></div>
     </div>
     <div class="text-center reveal" style="margin-top:40px;"><p style="font-size:14px;color:var(--text3);">Proyecto final · Herramientas Colaborativas DAM · Mayo 2026</p></div>
@@ -723,10 +725,29 @@ footer a:hover { color: var(--text1); }
   </div>
 </section>
 
+<!-- QR CODE -->
+<section id="qr" style="padding:100px 24px;text-align:center;position:relative;z-index:1;">
+  <div class="container" style="max-width:600px;">
+    <p class="reveal" style="font-size:13px;letter-spacing:2px;text-transform:uppercase;color:var(--accent2);font-weight:600;margin-bottom:16px;">Acceso directo</p>
+    <h2 class="reveal" style="font-size:clamp(2rem,5vw,3.2rem);font-family:'Syne',sans-serif;font-weight:800;margin-bottom:16px;letter-spacing:-1px;">Escanea y empieza<br>a aprender</h2>
+    <p class="reveal" style="font-size:16px;color:var(--text2);margin-bottom:52px;font-weight:300;line-height:1.7;">Apunta la cámara de tu móvil al código QR<br>para acceder directamente a MindLearn.</p>
+    <div class="reveal" style="display:flex;flex-direction:column;align-items:center;gap:24px;">
+      <div style="position:relative;display:inline-block;">
+        <div style="position:absolute;inset:-2px;border-radius:22px;background:linear-gradient(135deg,var(--accent),var(--accent2));z-index:0;"></div>
+        <div id="qr-code" style="position:relative;z-index:1;background:#121220;padding:24px;border-radius:20px;display:inline-block;"></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <img src="/icon-192.png" alt="MindLearn" style="width:22px;height:22px;border-radius:6px;">
+        <span style="font-family:'Syne',sans-serif;font-size:17px;font-weight:700;color:var(--accent2);letter-spacing:-0.3px;">mindlearn.vercel.app</span>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- FOOTER -->
 <footer>
-  <div class="footer-logo">🧠 MindLearn</div>
-  <p>Plataforma LMS de Psicología · Desarrollada con ❤️ por Desiree y Sebastián</p>
+  <div class="footer-logo"><img src="/icon-192.png" alt="MindLearn" style="width:28px;height:28px;border-radius:7px;object-fit:cover;"> MindLearn</div>
+  <p>Plataforma LMS de Psicología · Desarrollada con ❤️ por Desirée y Sebastián</p>
   <p style="margin-top:8px;"><a href="https://mindlearn.vercel.app" target="_blank">Abrir aplicación</a> &nbsp;·&nbsp; <a href="https://github.com/dadoga31/mindlearn" target="_blank">Código fuente</a></p>
 </footer>
 
@@ -873,6 +894,16 @@ var revealObserver = new IntersectionObserver(function(entries) {
 
 document.querySelectorAll('.reveal').forEach(function(el) {
   revealObserver.observe(el);
+});
+
+// ── QR CODE ──
+new QRCode(document.getElementById('qr-code'), {
+  text: 'https://mindlearn.vercel.app',
+  width: 280,
+  height: 280,
+  colorDark: '#e0e0ff',
+  colorLight: '#121220',
+  correctLevel: QRCode.CorrectLevel.H
 });
 </script>
 </body>
