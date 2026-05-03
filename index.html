@@ -1377,24 +1377,33 @@
     /* ── App layout ── */
     .sidebar { display: none !important; }
     .main { margin-left: 0 !important; overflow-x: hidden; }
-    body { overflow-x: hidden; }
+    body, html { overflow-x: hidden; } /* html necesario en iOS Safari */
 
     /* ── Header: respeta la barra de estado del iPhone ── */
     .header {
       padding-left: 16px;
       padding-right: 16px;
       padding-top: env(safe-area-inset-top, 0px);
-      padding-bottom: 0;
+      padding-bottom: 10px;
       height: calc(54px + env(safe-area-inset-top, 0px));
       align-items: flex-end;
-      padding-bottom: 10px;
     }
     .header-left p { display: none; }
     .header-left h2 { font-size: 15px; }
-    /* Badge más compacto en móvil para no desbordar */
-    #header-badge { font-size: 9px !important; padding: 2px 6px !important; max-width: 74px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    /* Badge oculto en móvil — el avatar ya muestra quién eres */
+    #header-badge { display: none !important; }
     /* Botón cerrar sesión visible solo en móvil */
     .mob-logout-btn { display: flex !important; }
+
+    /* ── Tags dentro de cards: no se desbordan ── */
+    .tag {
+      flex-shrink: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      max-width: 38%;
+    }
 
     /* ── Page content ── */
     .page-content {
@@ -1606,10 +1615,7 @@
     /* Auth card: menos padding para caber en pantalla */
     .auth-card { padding: 44px 16px 28px !important; }
 
-    /* Header: ocultar badge en pantallas muy estrechas */
-    #header-badge { display: none !important; }
-
-    /* Header right: menos gap */
+    /* Header right: menos gap en pantallas muy estrechas */
     .header-right { gap: 8px !important; }
 
     /* Page content: menos padding lateral */
