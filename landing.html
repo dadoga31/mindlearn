@@ -24,7 +24,7 @@
   --border: rgba(124,92,252,0.18);
 }
 
-html { scroll-behavior: smooth; }
+html { scroll-behavior: smooth; overflow-x: hidden; }
 
 body {
   font-family: 'Inter', sans-serif;
@@ -504,17 +504,18 @@ footer a:hover { color: var(--text1); }
 .reveal.visible    { opacity: 1 !important; transform: none !important; }
 
 /* ── NOISE GRAIN ── */
-body::after {
-  content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 9990; opacity: .025;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
-  background-size: 128px;
-  animation: grainShift .4s steps(1) infinite;
+.grain {
+  position: fixed; inset: 0; pointer-events: none; z-index: 9990; opacity: .03;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 200px;
+  animation: grainShift .5s steps(1) infinite;
+  will-change: background-position;
 }
 @keyframes grainShift {
-  0%  { transform: translate(0,0); }
-  25% { transform: translate(-5%,-5%); }
-  50% { transform: translate(5%,5%); }
-  75% { transform: translate(-5%,5%); }
+  0%  { background-position: 0 0; }
+  25% { background-position: 50px 20px; }
+  50% { background-position: -30px 60px; }
+  75% { background-position: 70px -40px; }
 }
 
 /* ── MOBILE ── */
@@ -545,10 +546,15 @@ body::after {
 <div id="cursor"></div>
 <div id="cursor-ring"></div>
 
+<!-- GRAIN -->
+<div class="grain"></div>
+
 <!-- BLOBS -->
-<div class="blob blob-1"></div>
-<div class="blob blob-2"></div>
-<div class="blob blob-3"></div>
+<div style="position:fixed;inset:0;overflow:hidden;pointer-events:none;z-index:0;">
+  <div class="blob blob-1"></div>
+  <div class="blob blob-2"></div>
+  <div class="blob blob-3"></div>
+</div>
 
 <!-- NAV -->
 <nav id="nav">
@@ -825,13 +831,13 @@ document.querySelectorAll('.feature-card').forEach(function(card) {
   });
 });
 
-// ── MAGNETIC BUTTONS ──
-document.querySelectorAll('.btn-primary, .btn-secondary, .nav-cta').forEach(function(btn) {
+// ── MAGNETIC BUTTONS (solo hero/cta, nunca nav) ──
+document.querySelectorAll('.hero-btns .btn-primary, .hero-btns .btn-secondary, .cta-btns .btn-primary, .cta-btns .btn-secondary').forEach(function(btn) {
   btn.addEventListener('mousemove', function(e) {
     var r = btn.getBoundingClientRect();
     var dx = e.clientX - (r.left + r.width/2);
     var dy = e.clientY - (r.top + r.height/2);
-    btn.style.transform = 'translate(' + dx*.2 + 'px,' + dy*.2 + 'px)';
+    btn.style.transform = 'translate(' + dx*.15 + 'px,' + dy*.15 + 'px)';
   });
   btn.addEventListener('mouseleave', function() {
     btn.style.transform = '';
